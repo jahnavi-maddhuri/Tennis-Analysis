@@ -16,6 +16,12 @@ geometry: margin=0.8in
 
 ## Abstract
 
+This study explores how player rankings and aces affect tennis match outcomes using Association of Tennis Professionals (ATP) data. The first research topic examines the impact of ranking differences on match duration. The research then evolves to investigate the relationship between the number of aces by a tennis player and that player’s odds of winning. 
+
+Methodology to the study includes exploratory data analysis combined with linear and logistic regression models, supported by visualizations. These findings highlight the connection between player rankings, aces, and match outcomes, while emphasizing the interactive impact of surface type.
+
+Results show that larger ranking gaps lead to shorter matches, though surface type and match conditions also influence duration. Additionally, the findings indicate that hitting more aces improves the odds of winning, with surface types like clay and hard courts playing a significant role in this relationship.
+
 ## Introduction
 
 A substantial body of research has explored the prediction of tennis match outcomes using statistical models, highlighting the importance of player attributes and match statistics. Early studies, such as those by Newton and Keller (2005)\[2\], O'Malley (2008)\[3\], and Riddle (1988)\[4\], demonstrate that under the assumption of independent and identically distributed (iid) point outcomes on a player's serve, the probability of winning a match can be derived from the probabilities of winning points on serve.
@@ -34,7 +40,7 @@ The initial collection of data contains features at the match level, therefore i
 
 In order to improve the quality of the data, those players that do not have a rank and rank points have been set to zero as they explain unranked players new to these tournaments. An inputing technique has been used for the player height using the average of the country of birth of the player.
 
-Furhtermore, analizing that matches whose number of aces for the winner nor the looser are missing lack all the statistical information from the the other aspects of the match therefore those records have been filtered. The same rationale applies to the serving games as it signals records that have missing information overal therefore those records have been filtered outside of the analysis data.
+Furthermore, analyzing that matches whose number of aces for the winner nor the loser are missing lack all the statistical information from the the other aspects of the match therefore those records have been filtered. The same rationale applies to the serving games as it signals records that have missing information overall therefore those records have been filtered outside of the analysis data.
 
 ### Variable selection
 
