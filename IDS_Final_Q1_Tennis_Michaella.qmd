@@ -1,0 +1,370 @@
+---
+title: "Project Proposal"
+author: 
+  - "Alejandro Paredes La Torre, Liangcheng (Jay) Liu"
+  - "Nzarama Michaella Desire Kouadio, Jahnavi Maddhuri"
+subtitle: "Due November 17 at 11:59pm"
+format: pdf
+include-in-header:
+  text: |
+    \usepackage{authblk}
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+#### Load Packages 
+
+```{r load-packages, message = FALSE, warning = FALSE, echo = FALSE}
+library(tidyverse)
+library(dplyr)
+library(tidyverse)
+library(Hmisc)
+library(cowplot)
+library(corrplot)
+library(ggplot2)
+```
+
+# Dataset 1
+
+**Data source:** Tennis atp, by Jeff Sackmann:
+https://github.com/JeffSackmann/tennis_atp/tree/master?tab=readme-ov-file
+
+**Brief description:**
+
+This dataset is a comprehensive archive of ATP player information, rankings, match results, and stats. It includes: a player file containing biographical data (e.g., player_id, name, hand, birth date, country, height); ranking files that track historical ATP rankings; a results file covering tour-level, challenger, and futures matches; match stats for tour-level matches. Some match stats may be missing due to either lack of ATP data or data validation filters.
+
+**Research question 1:** 
+
+How does the difference in ranking predict the length in minutes for the match, and does this predictive power vary across different tournament levels?
+
+- Outcome Variable: minutes (continuous). This represents the length of a match.
+
+- Explanatory Variable: winner_rank - loser_rank (continuous). This represents the difference in rank between the winner and loser. Let difference = winner_rank - loser_rank.
+
+- Interaction Term: surface (categorical). This represents the surface that the match was played on.
+
+
+$$
+minutes = β0 +β1⋅(difference) + β2⋅surface + β3(difference*surface) + ϵ
+$$
+
+- Question Rationale: We believe there is a relationship between rank difference and match duration where players that are closely matched will have a longer match. The surface could also play a role in how fast the players are able to react.
+
+# Step 1: Selecting only relevant columns to study
+
+```{r data-1, warning=FALSE, echo=FALSE}
+tennis <- read.csv("https://raw.githubusercontent.com/JeffSackmann/tennis_atp/refs/heads/master/atp_matches_qual_chall_2023.csv")
+```
+
+```{r}
+#glimpse(tennis)
+```
+
+## A. Using Correlation Matrix to identify confounding variables for our numerical variable
+
+
+- What I realised is that I cannot clean all columns, so my goal is to select the relevant columns for our analysis first and then do the cleaning for those columns.
+
+- We need to find confounding variables. 
+
+```{r}
+# Create the rank difference varaiable and put it in our dataset 
+tennis <- tennis %>%
+  mutate(rank_diff = winner_rank - loser_rank)
+```
+
+- Our first technique to finding confounding variables is to do a correlation analysis. By performing a correlation matrix, we’re identifying potential confounders as variables that are highly correlated with both your response variable (Y) and your predictors (Xs). ==> this works for continous variables
+
+Conclusion: None of the numerical varaible are correlated to minutes and rank difference at the same time.
+
+```{r, fig.width=11, fig.height=8}
+
+# Step 1: Build the correlation matrix
+
+  # Filter to only select numerical variables
+numerical_vars <- tennis[, sapply(tennis, is.numeric)]
+
+  # Compute the correlation matrix
+correlation_matrix <- cor(numerical_vars, use = "complete.obs")
+
+  # Visualize the correlation matrix
+corrplot(correlation_matrix, method = "circle", type = "upper", tl.col = "black", tl.srt = 50)
+
+# Step 2:  Flag the variable that are highly correlated to both minutes and rank diff at the same time'
+
+  # Compute correlations with minutes (Y) and rank_diff (X)
+cor_minutes <- correlation_matrix["minutes", ] # Correlation with Y
+cor_rank_diff <- correlation_matrix["rank_diff", ] # Correlation with X
+
+  # Combine into a dataframe for easier filtering
+cor_data <- data.frame(
+  variable = colnames(correlation_matrix),
+  cor_with_minutes = cor_minutes,
+  cor_with_rank_diff = cor_rank_diff
+)
+
+  # Add a flag for high correlation ( I chose a very low treshold of |0.5|)
+cor_data <- cor_data %>%
+  mutate(
+    high_cor_minutes = abs(cor_with_minutes) > 0.5,
+    high_cor_rank_diff = abs(cor_with_rank_diff) > 0.5,
+    high_cor_both = high_cor_minutes & high_cor_rank_diff
+  )
+
+# Filter and format the output to show only relevant columns
+cor_data <- cor_data %>%
+  select(cor_with_minutes, cor_with_rank_diff, high_cor_both)
+
+  # View the flagged variables
+print(cor_data)
+
+```
+
+## Using ANOVA TEST to find confounding variables for our categorical variable
+
+- Now we look at the categorical variables that could have a relationship with minutes and surface at the same time.
+
+The following categorical variables where flaggeg as potential cofounders:
+- tourney_id
+- tourney_name                 
+- winner_name                   
+- winner_ioc                    
+- loser_entry                   
+- loser_name                    
+- loser_hand                    
+- loser_ioc                    
+- score                    
+- round 
+
+> But we have to question if those variables are true cofounders or if they are naturally related to the structure of the data, so we need to think about their role in the dataset
+
+*Not a true confounder:* 
+- tourney_id, tourney_name, winner_name, loser_name, winner_ioc, loser_ioc: These are identifiers or descriptive variables that don’t directly influence minutes. Their association with both surface and minutes might just reflect the structure of the dataset, not a confounding relationship.
+
+- score: score lies in the causal pathway because surface influences how matches are played—different surfaces (like clay or grass) affect rally lengths and playing styles, which determine the number of games or sets in a match (score). This score then directly impacts minutes, as more games or sets naturally result in longer match durations, connecting surface to minutes through score
+
+*Potential confounder:* `round`: Certain rounds (e.g., finals) may occur more often on specific surfaces, plus later rounds tend to have longer matches due to competitiveness and higher level skillsets. 
+
+```{r, warning=FALSE}
+# Convert all character variables to factors
+tennis <- tennis %>%
+  mutate(across(where(is.character), as.factor))
+
+# Identify categorical variables in the dataset
+categorical_vars <- names(tennis)[sapply(tennis, is.factor)]
+
+# Exclude surface from the list (we're testing against it)
+categorical_vars <- setdiff(categorical_vars, "surface")
+
+# Initialize a results dataframe
+results <- data.frame(
+  variable = categorical_vars,
+  associated_with_minutes = NA,
+  associated_with_surface = NA
+)
+
+# Loop through each categorical variable
+for (var in categorical_vars) {
+  # Test association with minutes using ANOVA
+  anova_test <- summary(aov(tennis$minutes ~ tennis[[var]], data = tennis))
+  results$associated_with_minutes[results$variable == var] <- 
+    anova_test[[1]]["Pr(>F)"][1] < 0.05
+  
+  # Test association with surface using Chi-Square
+  table_surface <- table(tennis$surface, tennis[[var]])
+  chisq_test <- chisq.test(table_surface)
+  results$associated_with_surface[results$variable == var] <- 
+    chisq_test$p.value < 0.05
+}
+
+# Filter variables associated with both minutes and surface
+potential_confounders <- results %>%
+  filter(associated_with_minutes == TRUE & associated_with_surface == TRUE)
+
+# View the results
+print(potential_confounders)
+```
+
+## C. Relevant column announced
+
+Thus the relationship we will be analysing will include the following columns: 
+- minutes
+- rank difference
+- surface
+- round
+
+So our equation looks like this: 
+$$
+minutes = β0 + β1(surface) + β2(rank_diff) + β3(round) + β4(surface x rank_diff) + ϵ
+$$
+
+# Step 2: Cleaning Relevant Columns
+
+> Create a new dataframe with only relevant columns 
+```{r}
+# Create a dataframe with only the 4 selected columns
+tennis_filtered <- tennis %>% select(minutes, rank_diff, surface, round)
+glimpse(tennis_filtered)
+```
+
+> Show the number of missing values for each column. Only minutes and rank difference have missing values. 
+```{r}
+# Count the number of NAs in each column
+na_counts <- tennis_filtered  %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+# View the NA counts
+na_counts
+```
+
+> Deal with the missing values for the rank difference column.
+
+- Out of all 10663, only 3% of the values are missing. 
+- Complex solution to fill in missing values: Filling missing rank_diff values by looking at other matches (where the same player appears) and taking the mean of their rank to fill in. This assumes that their rank remains constant across all matches where the data is missing. This assumption is unrealistic because rankings fluctuate based on, number of tournament they participated in, types of tournamnets, performance, tournament outcomes, and points earned... 
+- With just 3% of the data missing, the amount of information lost by removing these rows is minimal. 
+
+```{r}
+# Calculate the percentage of missing values in rank_diff
+percent_missing_rank_diff <- sum(is.na(tennis_filtered$rank_diff)) / nrow(tennis_filtered) * 100
+percent_missing_rank_diff
+
+# Drop rows with NAs in rank_diff
+tennis_filtered <- tennis_filtered %>%
+  filter(!is.na(rank_diff))
+
+# Check if NAs were removed from rank_diff
+sum(is.na(tennis_filtered$rank_diff))
+
+```
+
+> Deal with the missing values for minutes column
+- Out of all 10663, only 3.5% of the values are missing. 
+- This is also not significant, but we can still fill in the missing values. We can fill missing values by grouping matches by round and calculating the median or mean of match duration for each round, then assigning this median/mean value to missing entries within the same round.
+
+```{r}
+# Calculate the percentage of missing values in rank_diff
+percent_missing_minutes<- sum(is.na(tennis_filtered$minutes)) / nrow(tennis_filtered) * 100
+# Print the result
+print(percent_missing_minutes)
+```
+
+- We checked the distribution of minutes (match durations), it shows that it is highly skewed. Most matches had short durations, but a few extreme outliers (very long matches) stretched the scale. Before filling missing values, it’s crucial to know if the data is normally distributed or skewed to determine if it's best to use the mean or the median. In our case we will be using the mdeian. 
+
+```{r, warning=FALSE}
+# Plot histogram using ggplot2
+ggplot(na.omit(tennis_filtered), aes(x = minutes)) +
+  geom_histogram(bins = 100, fill = "blue", color = "black") +
+  labs(title = "Histogram of Match Duration",
+       x = "Minutes",
+       y = "Frequency") +
+  theme_minimal()
+```
+
+- To account for differences in match durations across tournament stages (e.g., earlier rounds may have shorter matches), we filled missing values using the median duration within each round.
+
+```{r}
+# Fill missing minutes with the median of the respective round
+tennis_filtered <- tennis_filtered %>%
+  group_by(round) %>%
+  mutate(minutes = ifelse(is.na(minutes), median(minutes, na.rm = TRUE), minutes))
+
+sum(is.na(tennis_filtered$minutes))
+```
+
+# Step 3: Run the Model
+
+```{r}
+# Fit the linear model
+model_q1 <- lm(minutes ~ rank_diff * surface + round, data = tennis_filtered)
+
+# View the summary of the model
+summary(model_q1)
+```
+
+# Step 4: Interpretation of Model
+
+> We will only be interpreting the variables that are statistically significant
+
+- For surface clay: Matches played on clay surfaces last, on average, 11.25 minutes longer than matches on carpet (reference), holding all other variables constant.
+
+- Round Q1: Matches in Round Q1 are, on average, 11.14 minutes shorter than matches in the Final round, holding all other variables constant
+
+- Round Q2: Matches in Round Q2 are, on average, 5.85 minutes shorter than matches in the final round, holding all other variables constant.
+
+- Round R32: Matches in Round R32 are, on average, 7.23 minutes shorter than matches in final round, holding all other variables constant.
+
+- Round SF: Matches in Semifinals  are, on average, 8.66 minutes shorter than matches in final round, holding all other variables constant
+
+> Key Takeways:
+
+- Clay Surface: Matches tend to last longer on clay.
+
+- Rounds: Early rounds like Q1, Q2, R32, and even SF are significantly shorter in duration compared to the Final round.
+
+- These findings suggest that both the tournament surface and the round significantly influence match duration.
+
+> Note:
+
+- Q1: First round of qualification matches (Qualifier 1).
+
+- Q2: Second round of qualification matches (Qualifier 2).
+
+- Q3: Third round of qualification matches (Qualifier 3).
+
+- R32: Round of 32 people
+
+- R16: Round of 16 people
+
+- QF: Quarterfinals
+
+- SF: Semifinals
+
+- F: Final (The reference category in regression model).
+
+# Step 5: Model assessment and assumption violation
+
+> R_square = 0.02, the model struggles to explain the variability in our data this is a poor fit.
+
+> Now let's check if assumptions are violated
+```{r, fig.width=9, fig.height=10}
+par(mfrow = c(2,2))
+plots <- plot(model_q1)
+```
+
+**Linearity Assumption**: Looking the residual vs fitted plot, residuals are randomly scattered around 0 (red horizontal line) and show no clear pattern. We do see some outliers (data point 9489 and data point 1823), but the assumption is satisfied.
+
+**Independence Assumption**: The predictors are independent from one another. So this assumption is not violated. 
+
+**Normality Assumption**: Looking at the Q-Q plot, residuals follow a straight line and only slightly deviate at the very end, due to the same two outliers mentioned above but the assumption is satisfied
+
+**Equal Variance**: Looking at the scale location, we see that the residuals are equally spread out around a fairly horizontal line, so it's fair to asssume that homoscedasticity is maintained
+
+
+# Limitations of our model
+
+- Low predictive power: R_square = 0.02 indicates, our model explains only 2% of the variability in the response variable (minutes). This suggests that the predictors rank_diff, surface, round, and their interaction are not doing a great job of explaining match duration. We should explore additional predictors in our dataset or consider external factors such as fatigue, weather...
+
+- The interaction terms (rank_diff:surface) in our model is not statistically significant, suggesting it contributes nothing to explaining minutes. We should rethink or remove insignificant interaction terms to simplify the model.
+
+- So our main issue comes from having picked none signicant predictors for match duration and not necessarily due to a violation of assumption.
+
+# Useful pieces of code to not delete (might be used later on)
+
+- Checking if ID's are unique
+Since one row is a match, we can see if a player with a missing rank in one row appears in another row and fill up their rank with that.
+
+```{r}
+# Combine winner_id and loser_id into a single vector
+unique_players <- unique(c(tennis$winner_id, tennis$loser_id))
+
+# Check the length of unique values
+num_unique_players <- length(unique(unique_players))
+num_total_players <- length(unique_players)
+
+# Verify if the total is equal to the number of unique players
+if (num_unique_players == num_total_players) {
+  print("All player IDs are unique!")
+} else {
+  print("There are duplicate player IDs.")
+}
+```
