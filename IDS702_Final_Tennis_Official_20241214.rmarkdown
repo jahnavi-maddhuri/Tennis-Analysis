@@ -14,6 +14,7 @@ execute:
 geometry: margin=0.8in
 ---
 
+
 ## Abstract
 
 Modeling key factors that influence professional tennis matches is essential for athletes and teams to address underdeveloped areas and for researchers to enhance the development of young and amateur players. This study uses ATP data to examine the effects of player rankings and aces on match outcomes. It explores how ranking differences impact match duration and investigates the relationship between the number of aces a player hits and their odds of winning. Through exploratory data analysis and regression modeling, the findings reveal that larger ranking gaps lead to shorter matches, though surface types and match conditions also play a role. Additionally, hitting more aces significantly improves a player’s chances of winning, with surface types like clay and hard courts influencing this relationship.
@@ -73,6 +74,7 @@ In regard of the first research questions, linear regression was used to model t
 linear regression to evaluate inference capabilities and determining the principal factors for a match win using logistic regression to evaluate the probability of a win. Variance Inflation Factor (VIF) was used to test multi-colinearity. For the linear regression task the assumptions for the model are tested via residual vs fitted plots and normal q-q plots, furthermore, the performance of the model is evaluated using the adjusted r squared metric. In terms of logistic regression, accuracy, recall sensitivity and specificity are used to evaluate the model. Lasso Regularization is implemented to prevent overfitting of the model due to too many variables. The AIC score is also used to evaluate the model, incorporating the number of predictors into the overall score. 
 
 ## Results
+
 
 ```{r load-packages, message = FALSE, warning = FALSE, echo = FALSE}
 library(tidyverse)
@@ -299,7 +301,9 @@ tennis_long <- tennis_long %>%
 #202
 ```
 
+
 ### Overview of key variables of interest
+
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 tennis_long %>%
@@ -311,8 +315,10 @@ tennis %>%
   dplyr::summarize(count = n(), proportion = n()/116050)
 
 ```
+
 The dataset has a fairly even distribution of players that Win (101746) and Lose (111621), implying that there would not be more information gain in one outcome over the other. The surface types do not have as balanced of a distribution. Majority of the matches are played on a Hard or Clay surface, accounting for 53.5% and 41.1% of the matches. About 5% of the matches are played on Grass and only 0.2% on Carpet.
 Below we consider the distribution of the key continuous variables:
+
 
 ```{r warning=FALSE, echo=FALSE}
 summary_table <- data.frame(
@@ -329,7 +335,9 @@ kable(summary_table, caption = "Summary Statistics for Variables")
 ```
 
 
+
 ### **Research question 1: Effects of the difference in ranking over the length in minutes for a tennis match**
+
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # Count the number of NAs in each column
@@ -393,11 +401,13 @@ tennis <- tennis %>%
 #15720
 ```
 
+
 > Below is the linear regression analyzing the relationshiop between minutes and a multitude of regressors
 
 The second regression model was designed to address the low explanatory power of the initial model, which had a low adjusted R². By incorporating additional predictors such as player performance metrics, tournament levels, and specific match characteristics, the aim was to better capture the complexity of factors affecting match duration (minutes). This approach improved the adjusted R² = 0.57, suggesting that these added variables account for more of the variance in the response variable. The model also includes an interaction term and accounts for more detailed match-level attributes, providing a more comprehensive view of the factors influencing match length.
 
 Some variables that significantly impact match duration (minutes) include the difference in rank between players, which shows a strong negative association, indicating that matches with greater rank disparity are shorter. The number of breakpoints saved by the winner has a significant positive effect, suggesting that matches where the winner saves more breakpoints tend to last longer. Lastly, the difference in aces between players negatively affects match duration, with matches showing a greater disparity in aces being resolved more quickly. These variables emphasize the importance of player performance and competitive dynamics in determining match length.
+
 
 
 ```{r, message = FALSE, warning=FALSE, echo=FALSE}
@@ -446,12 +456,15 @@ mean_squared_error <- mean((test$minutes - predictions)^2)
 
 ```
 
+
 > Below is the diagnostic plot for the second linear model. 
+
 
 ```{r, fig.width=9, fig.height=10}
 par(mfrow = c(2,2))
 plots <- plot(model_linear_2)
 ```
+
 
 Despite achieving a higher adjusted R² compared to the first model, several key assumptions of the linear regression model appear to be violated. The "Residuals vs Fitted" plot indicates potential non-linearity in the relationships between predictors and the response variable, suggesting the model may not be capturing all relevant patterns. The "Q-Q Residuals" plot shows significant deviations from normality, particularly in the tails, which could compromise the reliability of hypothesis tests and confidence intervals. Additionally, the "Scale-Location" plot reveals heteroscedasticity, with residuals showing increasing variance as fitted values grow. While the larger R²suggests the model explains more variance in match duration, these assumption violations indicate that the results may not be entirely valid or interpretable under the linear regression framework, reducing the model's overall reliability. These violations suggest that the model might require transformations, interaction terms, or alternative regression methods to better satisfy these assumptions.
 
@@ -459,6 +472,7 @@ Despite achieving a higher adjusted R² compared to the first model, several key
 ### **Research question 2: Aces and court surface type influence in match outcome**
 
 To assess multicollinearity, VIF scores were used to understand which variables exhibited high multicollinearity in the dataset. Specifically, variables related to the total number of serves attempted, first serves attempted, first serve points won and second serve points one are highly correlated with VIF scores ranging from 9 to 72. To continue to capture this information, but limit multicollinearity, we combine these into the total first serve points won ratio which is a ratio of the total first serve points won to the total first serves attempted. Similarly, the total second serve points won ratio is the ratio of the total second serve points won to the difference between the total serves attempted and the total first serves attempted. The new VIF scores for these two ratios were less than 1.3
+
 
 ```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 conflicts_prefer(dplyr::summarize)
@@ -511,7 +525,9 @@ tennis_long %>%
   summarize(mean = mean(draw_size), min = min(draw_size), max = max(draw_size))
 ```
 
+
 The results for the final fitted model for win prediction are in the Anex I since the table is large. The selected variables along with the interaction term of the type of surface was included. Multiple iterations to find the best model were performed and multicolinearity evaluations were used to assess the model. To evaluate multicollinearity, the VIF score was used on a logistic regression model. The raw variables representing a player's total serve points, number of first serve points made, number of first serve points won, number of second serve points won, number of break points faced, number of break points saved, total draw size in the tournament and the tournament level were all highly correlated. To address the multicollinearity in serve variables, ratios of successful serves for the first and second attempt were generated. Similarly, the break points saved ratio is used in place of the overall counts. Lastly, between draw size and tournament level, draw size is only used as there is more granular information derived from draw size than tournament level.
+
 
 ```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # Model based on above identified columns and lasso regularization to limit variables and prevent overfitting:
@@ -547,6 +563,7 @@ final_lasso_model <- glmnet(X, y, family = "binomial", alpha = 1, lambda = best_
 # Print final model coefficients
 print(coef(final_lasso_model))
 ```
+
 Apart from the VIF scores, Lasso Regularization is also performed to prevent the model from overfitting as the number of variables used is large. Using the optimal lambda value in the cross validation process, extraneous variables are identified. However, this approach did not result in the removal of any variables, rather specific binary variables representing a category like whether or not the surface is grass were deemed insignificant. Hence, Lasso Regularization is not used in the final model. The model function is:
 
 $$
@@ -575,6 +592,7 @@ $$
 $$
 
 **Below is a summary of the final logistic regression model:**
+
 ```{r}
 # Final Model:
 m = glm(win ~ draw_size + player_hand+ player_height +  player_age + rank + rank_points + aces*surface  + double_faults + break_pt_save_ratio,
@@ -607,7 +625,9 @@ kable(coeff_df, caption = "Logistic Regression Coefficients, Odds Ratios, and P-
 
 ```
 
+
 Analyzing the variables of interest aces and surface, holding every other variable constant, applying exponential we have an effect of 1.1 times increase in odds of winning for every extra ace point. Similarly matches on Clay and Hard surfaces increase the odds of winning in comparison to playing on a Carpet by 2.1 and 1.7 times respectively. Surprisingly, the impact of every extra ace point is not statistically significant between the different surface types. Another statistically significant variable impacting the odds of winning is the right vs left-handed stature of the player. Specifically being Right or Left Handed (as opposed to undefined) is associated with approximately 9.7 times increase in odds of winning.
+
 
 ```{r , message=FALSE, warning=FALSE}
 # Load necessary libraries
@@ -651,7 +671,9 @@ metrics <- data.frame(
 kable(metrics, format = "markdown", col.names = c("Metric", "Value"))
 ```
 
+
 The performance of the logistic regression model was evaluated using standard classification metrics, including accuracy, precision, recall, and F1 score. The model achieved an accuracy of 0.8117, indicating that approximately 81.17% of predictions matched the true outcomes. The precision of the model was 0.8230, reflecting its ability to correctly identify positive cases while minimizing false positives. The recall was measured at 0.8155, demonstrating the model's capability to correctly identify a high proportion of actual positive cases. Finally, the F1 score, a harmonic mean of precision and recall, was calculated to be 0.8192, indicating a balanced performance between these two metrics. Together, these results suggest the model performs reliably in predicting match outcomes based on the given features.
+
 ```{r}
 
 ggplot(tennis_long_clean, aes(x = win, y = aces, fill = win)) +
@@ -666,6 +688,7 @@ ggplot(tennis_long_clean, aes(x = win, y = aces, fill = win)) +
   theme(legend.position = "none")
 
 ```
+
 The distribution of aces played by Winners is slightly higher valued than the distribution of aces by Losers. This supports the model estimates and the slight increase in odds of winning (by 1.1 times) for every additional ace played.
 
 ## Conclusion
