@@ -58,14 +58,19 @@ To address the second research question, which focuses on analyzing match outcom
 
 Additionally, rows with missing values for the number of aces have been excluded, as this information is crucial for addressing the second research question. Matches where either the winner's or the loser's ace count is missing lack essential statistical details about the match, making these records incomplete for analysis. As such, these records have been filtered out. A similar approach was applied to serving games, as missing data in this variable indicates that other critical match information is also absent, further justifying their exclusion.
 
-Lastly, for highly correlated information, a VIF technique was used ratios have been computed to continue to capture granularity in information, but also reduce the number of variables needed in any model, minimizing multicollinearity.
+To assess multicollinearity, the Variance Inflation Factor (VIF) was used to identify variables with high correlations within the dataset. To reduce multicollinearity while preserving key information, correlated variables were combined into meaningful ratios. This approach allowed for the retention of important data without introducing excessive redundancy. The adjusted variables were then re-evaluated for multicollinearity, ensuring that the new metrics exhibited minimal inter-variable correlation.
+
+
 
 ### Variable selection
 
 Taking as reference previous research regarding the most relevant features involved in the outcome of a tennis match (Newton et al., 2005\[1\]; O'Malley 2008\[2\]; Kovalchik, 2016) a pre selection was made observing the limitation of the available data. In order to further refine the process of feature selection exploratory data analysis was conducted using correlation plots, box plots and scatterplots.
 
-### Modeling and evaluation
-The present study focuses on the effects of the duration of a match using linear regression to evaluate inference capabilities and determining the principal factors for a match win using logistic regression to evaluate the probability of a win. Variance Inflation Factor (VIF) was used to test multi-colinearity. For the linear regression task the assumptions for the model are tested via residual vs fitted plots and normal q-q plots, furthermore, the performance of the model is evaluated using the adjusted r squared metric. In terms of logistic regression, accuracy, recall sensitivity and specificity are used to evaluate the model. Lasso Regularization is implemented to prevent overfitting of the model due to too many variables. The AIC score is also used to evaluate the model, incorporating the number of predictors into the overall score. 
+### Model fitting and evaluation
+
+In regard of the first research questions, linear regression was used to model the relationship between the differences. How does the difference in player rankings influence the duration of a tennis match?
+
+linear regression to evaluate inference capabilities and determining the principal factors for a match win using logistic regression to evaluate the probability of a win. Variance Inflation Factor (VIF) was used to test multi-colinearity. For the linear regression task the assumptions for the model are tested via residual vs fitted plots and normal q-q plots, furthermore, the performance of the model is evaluated using the adjusted r squared metric. In terms of logistic regression, accuracy, recall sensitivity and specificity are used to evaluate the model. Lasso Regularization is implemented to prevent overfitting of the model due to too many variables. The AIC score is also used to evaluate the model, incorporating the number of predictors into the overall score. 
 
 ## Results
 
@@ -148,141 +153,6 @@ missing_height_players <- tennis %>%
 
 ```
 
-```{r , message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
-# Create a long-format dataset for both winners and losers
-tennis_long <- tennis %>%
-  filter(!is.na(minutes) & !is.na(winner_rank) & !is.na(loser_rank))%>%
-  mutate(
-    win = 1,
-    player_id = winner_id,
-    player_name = winner_name,
-    player_seed = winner_seed,
-    player_entry = winner_entry,
-    player_hand = winner_hand,
-    player_ht = winner_ht,
-    player_ioc = winner_ioc,
-    player_age = winner_age,
-    aces = w_ace,
-    df = w_df,
-    svpt = w_svpt,
-    first_in = w_1stIn,
-    first_won = w_1stWon,
-    second_won = w_2ndWon,
-    svgms = w_SvGms,
-    bp_saved = w_bpSaved,
-    bp_faced = w_bpFaced,
-    rank = winner_rank,
-    rank_points = winner_rank_points,
-    score = score,
-    tourney_id = tourney_id,
-    tourney_name = tourney_name,
-    surface = surface,
-    draw_size = draw_size,
-    tourney_level = tourney_level,
-    tourney_date = tourney_date,
-    match_num = match_num
-  ) %>%
-  select(
-    tourney_id, tourney_name, surface, draw_size, tourney_level, tourney_date,
-    match_num, player_id, player_seed, player_entry, player_name, player_hand,
-    player_ht, player_ioc, player_age, score, rank, rank_points, aces, df, svpt,
-    first_in, first_won, second_won, svgms, bp_saved, bp_faced, win
-  ) %>%
-  bind_rows(
-    # Create rows for the loser
-    tennis %>%
-      mutate(
-        win = 0,
-        player_id = loser_id,
-        player_name = loser_name,
-        player_seed = loser_seed,
-        player_entry = loser_entry,
-        player_hand = loser_hand,
-        player_ht = loser_ht,
-        player_ioc = loser_ioc,
-        player_age = loser_age,
-        aces = l_ace,
-        df = l_df,
-        svpt = l_svpt,
-        first_in = l_1stIn,
-        first_won = l_1stWon,
-        second_won = l_2ndWon,
-        svgms = l_SvGms,
-        bp_saved = l_bpSaved,
-        bp_faced = l_bpFaced,
-        rank = loser_rank,
-        rank_points = loser_rank_points,
-        score = score,
-        tourney_id = tourney_id,
-        tourney_name = tourney_name,
-        surface = surface,
-        draw_size = draw_size,
-        tourney_level = tourney_level,
-        tourney_date = tourney_date,
-        match_num = match_num
-      ) %>%
-      select(
-        tourney_id, tourney_name, surface, draw_size, tourney_level, tourney_date,
-        match_num, player_id, player_seed, player_entry, player_name, player_hand,
-        player_ht, player_ioc, player_age, score, rank, rank_points, aces, df, svpt,
-        first_in, first_won, second_won, svgms, bp_saved, bp_faced, win
-      )
-  )
-
-# Create new columns for year, month, and day
-tennis_long <- tennis_long %>%
-  mutate(
-    match_year = substr(tourney_date, 1, 4),       # Extract the first 4 characters as the year
-    match_month = substr(tourney_date, 5, 6)     # Extract the 5th and 6th characters as the month
-)
-
-tennis_long <- tennis_long %>%
-  rename(
-    player_height = player_ht,
-    double_faults = df,
-    player_country = player_ioc,
-    serve_points = svpt,
-    first_serves=first_in,
-    first_serves_points_won=first_won,
-    second_serves_points_won=second_won,
-    serve_games=svgms,
-    break_points_saved=bp_saved,
-    break_points_faced=bp_faced
-  )
-
-# Convert Win to a factor with appropriate labels
-tennis_long <- tennis_long |>
-  mutate(
-    win = factor(win, levels = c(0, 1), labels = c("Loss", "Win")),
-    rank = if_else(is.na(rank), 0, rank),
-    rank_points = if_else(is.na(rank_points), 0, rank_points)
-  )
-tennis_long <- tennis_long %>%
-  group_by(player_country) %>%
-  mutate(
-    player_height = if_else(is.na(player_height), 
-                            mean(player_height, na.rm = TRUE), 
-                            player_height)
-  ) %>%
-  ungroup()
-
-tennis_long <- tennis_long |>
-  mutate(
-    player_height = if_else(is.na(player_height), mean(player_height, na.rm = TRUE), player_height)
-  )
-
-tennis_long <- tennis_long %>%
-  filter(!is.na(aces) & !is.na(player_age) & !is.na(serve_games))
- 
-# Get the number of NAs in each column
-#na_count <- sapply(tennis_long, function(x) sum(is.na(x)))
-# Display the result
-#na_count
-#dim(tennis_long)
-#tennis_long %>% 
-#202
-```
-
 ### Overview of key variables of interest
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
@@ -301,8 +171,8 @@ Below we consider the distribution of the key continuous variables:
 ```{r warning=FALSE, echo=FALSE}
 summary_table <- data.frame(
   Variable = c("minutes", "rank", "aces"),
-  Minimum = c(min(tennis$minutes, na.rm = TRUE), min(tennis_long$rank, na.rm = TRUE), min(tennis_long$aces, na.rm = TRUE)),
-  `Quantile 1` = c(quantile(tennis$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
+  Minimum = c(min(tennis_long$minutes, na.rm = TRUE), min(tennis_long$rank, na.rm = TRUE), min(tennis_long$aces, na.rm = TRUE)),
+  `Quantile 1` = c(quantile(tennis_long$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
   Mean = c(mean(tennis$minutes, na.rm = TRUE), mean(tennis_long$rank, na.rm = TRUE), mean(tennis_long$aces, na.rm = TRUE)),
   Median = c(median(tennis$minutes, na.rm = TRUE), median(tennis_long$rank, na.rm = TRUE), median(tennis_long$aces, na.rm = TRUE)),
   `Quantile 3` = c(quantile(tennis$minutes, 0.75, na.rm = TRUE), quantile(tennis_long$rank, 0.75, na.rm = TRUE), quantile(tennis_long$aces, 0.75, na.rm = TRUE)),
@@ -439,6 +309,143 @@ Despite achieving a higher adjusted R² compared to the first model, several key
 
 ### **Research question 2: Aces and court surface type influence in match outcome**
 
+To assess multicollinearity, VIF scores were used to understand which variables exhibited high multicollinearity in the dataset. Specifically, variables related to the total number of serves attempted, first serves attempted, first serve points won and second serve points one are highly correlated with VIF scores ranging from 9 to 72. To continue to capture this information, but limit multicollinearity, we combine these into the total first serve points won ratio which is a ratio of the total first serve points won to the total first serves attempted. Similarly, the total second serve points won ratio is the ratio of the total second serve points won to the difference between the total serves attempted and the total first serves attempted. The new VIF scores for these two ratios were less than 1.3
+
+```{r , message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+# Create a long-format dataset for both winners and losers
+tennis_long <- tennis %>%
+  filter(!is.na(minutes) & !is.na(winner_rank) & !is.na(loser_rank))%>%
+  mutate(
+    win = 1,
+    player_id = winner_id,
+    player_name = winner_name,
+    player_seed = winner_seed,
+    player_entry = winner_entry,
+    player_hand = winner_hand,
+    player_ht = winner_ht,
+    player_ioc = winner_ioc,
+    player_age = winner_age,
+    aces = w_ace,
+    df = w_df,
+    svpt = w_svpt,
+    first_in = w_1stIn,
+    first_won = w_1stWon,
+    second_won = w_2ndWon,
+    svgms = w_SvGms,
+    bp_saved = w_bpSaved,
+    bp_faced = w_bpFaced,
+    rank = winner_rank,
+    rank_points = winner_rank_points,
+    score = score,
+    tourney_id = tourney_id,
+    tourney_name = tourney_name,
+    surface = surface,
+    draw_size = draw_size,
+    tourney_level = tourney_level,
+    tourney_date = tourney_date,
+    match_num = match_num
+  ) %>%
+  select(
+    tourney_id, tourney_name, surface, draw_size, tourney_level, tourney_date,
+    match_num, player_id, player_seed, player_entry, player_name, player_hand,
+    player_ht, player_ioc, player_age, score, rank, rank_points, aces, df, svpt,
+    first_in, first_won, second_won, svgms, bp_saved, bp_faced, win
+  ) %>%
+  bind_rows(
+    # Create rows for the loser
+    tennis %>%
+      mutate(
+        win = 0,
+        player_id = loser_id,
+        player_name = loser_name,
+        player_seed = loser_seed,
+        player_entry = loser_entry,
+        player_hand = loser_hand,
+        player_ht = loser_ht,
+        player_ioc = loser_ioc,
+        player_age = loser_age,
+        aces = l_ace,
+        df = l_df,
+        svpt = l_svpt,
+        first_in = l_1stIn,
+        first_won = l_1stWon,
+        second_won = l_2ndWon,
+        svgms = l_SvGms,
+        bp_saved = l_bpSaved,
+        bp_faced = l_bpFaced,
+        rank = loser_rank,
+        rank_points = loser_rank_points,
+        score = score,
+        tourney_id = tourney_id,
+        tourney_name = tourney_name,
+        surface = surface,
+        draw_size = draw_size,
+        tourney_level = tourney_level,
+        tourney_date = tourney_date,
+        match_num = match_num
+      ) %>%
+      select(
+        tourney_id, tourney_name, surface, draw_size, tourney_level, tourney_date,
+        match_num, player_id, player_seed, player_entry, player_name, player_hand,
+        player_ht, player_ioc, player_age, score, rank, rank_points, aces, df, svpt,
+        first_in, first_won, second_won, svgms, bp_saved, bp_faced, win
+      )
+  )
+
+# Create new columns for year, month, and day
+tennis_long <- tennis_long %>%
+  mutate(
+    match_year = substr(tourney_date, 1, 4),       # Extract the first 4 characters as the year
+    match_month = substr(tourney_date, 5, 6)     # Extract the 5th and 6th characters as the month
+)
+
+tennis_long <- tennis_long %>%
+  rename(
+    player_height = player_ht,
+    double_faults = df,
+    player_country = player_ioc,
+    serve_points = svpt,
+    first_serves=first_in,
+    first_serves_points_won=first_won,
+    second_serves_points_won=second_won,
+    serve_games=svgms,
+    break_points_saved=bp_saved,
+    break_points_faced=bp_faced
+  )
+
+# Convert Win to a factor with appropriate labels
+tennis_long <- tennis_long |>
+  mutate(
+    win = factor(win, levels = c(0, 1), labels = c("Loss", "Win")),
+    rank = if_else(is.na(rank), 0, rank),
+    rank_points = if_else(is.na(rank_points), 0, rank_points)
+  )
+tennis_long <- tennis_long %>%
+  group_by(player_country) %>%
+  mutate(
+    player_height = if_else(is.na(player_height), 
+                            mean(player_height, na.rm = TRUE), 
+                            player_height)
+  ) %>%
+  ungroup()
+
+tennis_long <- tennis_long |>
+  mutate(
+    player_height = if_else(is.na(player_height), mean(player_height, na.rm = TRUE), player_height)
+  )
+
+tennis_long <- tennis_long %>%
+  filter(!is.na(aces) & !is.na(player_age) & !is.na(serve_games))
+ 
+# Get the number of NAs in each column
+#na_count <- sapply(tennis_long, function(x) sum(is.na(x)))
+# Display the result
+#na_count
+#dim(tennis_long)
+#tennis_long %>% 
+#202
+```
+
 ```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 conflicts_prefer(dplyr::summarize)
 # Convert tourney level to ordinal variable:
@@ -491,6 +498,7 @@ tennis_long %>%
 ```
 
 The results for the final fitted model for win prediction are in the Anex I since the table is large. The selected variables along with the interaction term of the type of surface was included. Multiple iterations to find the best model were performed and multicolinearity evaluations were used to assess the model. To evaluate multicollinearity, the VIF score was used on a logistic regression model. The raw variables representing a player's total serve points, number of first serve points made, number of first serve points won, number of second serve points won, number of break points faced, number of break points saved, total draw size in the tournament and the tournament level were all highly correlated. To address the multicollinearity in serve variables, ratios of successful serves for the first and second attempt were generated. Similarly, the break points saved ratio is used in place of the overall counts. Lastly, between draw size and tournament level, draw size is only used as there is more granular information derived from draw size than tournament level.
+
 ```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # Model based on above identified columns and lasso regularization to limit variables and prevent overfitting:
 tennis_long_clean <- tennis_long[complete.cases(tennis_long[, c("win", "draw_size", "player_hand", "player_height", 
