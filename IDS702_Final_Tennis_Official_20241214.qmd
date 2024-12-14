@@ -247,31 +247,6 @@ tennis <- tennis %>%
 #15720
 ```
 
-> Below is the linear regression analyzing the relationshiop between minutes, surface and ranking differences amongst players
-
-$$
-minutes = β0 +β1⋅(difference) + β2⋅surface + β3(difference*surface) + ϵ
-$$
-
-```{r, message = FALSE, warning=FALSE, echo=FALSE}
-# First linear regression with only difference in rankings and surface
-model_linear_1 <- lm(minutes ~ diff_rank * surface, data = tennis)
-summary(model_linear_1)
-```
-
-Initially, the goal was to explore the relationship between match duration (minutes) and a limited set of predictors, specifically the difference in rankings and the interaction with surface type. However, the adjusted R² of the initial model was quite low (R² = 0.02), indicating that the predictors explained only a small fraction of the variation in match duration. This suggests that there are likely other important factors influencing the outcome that were not accounted for in the model.
-
-To address this limitation, a second approach was taken to include additional variables in the model, particularly player performance metrics and other contextual factors. The rationale was that these additional predictors might capture more of the complexity and variability inherent in match durations, thereby improving the model's explanatory power and increasing the adjusted R². This step aims to make the model more robust and reflective of the factors that influence match duration.
-
-> Below is the diagnostic plot for the first linear model.
-
-```{r, fig.width=9, fig.height=10}
-par(mfrow = c(2,2))
-plots <- plot(model_linear_1)
-```
-
-The residual diagnostics reveal some violations of the linear regression assumptions, albeit less severe compared to the second model. The "Residuals vs Fitted" plot still shows signs of non-linearity, indicating the model may not adequately capture all patterns in the data. The "Q-Q Residuals" plot suggests moderate deviations from normality, particularly in the tails, which could affect hypothesis testing but to a lesser extent than the expanded model. The "Scale-Location" plot exhibits slight heteroscedasticity, where the variance of residuals increases with fitted values, suggesting the model's predictions may not be equally reliable across all ranges. These issues indicate that while the model may be simpler, its assumptions are not entirely satisfied, and its reliability could still be questioned despite fewer violations (compared to the 2nd model, see below).
-
 > Below is the linear regression analyzing the relationshiop between minutes and a multitude of regressors
 
 The second regression model was designed to address the low explanatory power of the initial model, which had a low adjusted R². By incorporating additional predictors such as player performance metrics, tournament levels, and specific match characteristics, the aim was to better capture the complexity of factors affecting match duration (minutes). This approach improved the adjusted R² = 0.57, suggesting that these added variables account for more of the variance in the response variable. The model also includes an interaction term and accounts for more detailed match-level attributes, providing a more comprehensive view of the factors influencing match length.
