@@ -348,17 +348,17 @@ tennis <- tennis %>%
   )
 
 # Group-wise imputation: ensure that replacements respect the context of the surface variable
-tennis <- tennis %>%
-  group_by(surface) %>%
-  mutate(
-    winner_ht = ifelse(is.na(winner_ht), mean(winner_ht, na.rm = TRUE), winner_ht),
-    loser_ht = ifelse(is.na(loser_ht), mean(loser_ht, na.rm = TRUE), loser_ht),
-    minutes = ifelse(is.na(minutes), median(minutes, na.rm = TRUE), minutes)
-  ) %>%
-  ungroup()
+#tennis <- tennis %>%
+#  group_by(surface) %>%
+#  mutate(
+#    winner_ht = ifelse(is.na(winner_ht), mean(winner_ht, na.rm = TRUE), winner_ht),
+#    loser_ht = ifelse(is.na(loser_ht), mean(loser_ht, na.rm = TRUE), loser_ht),
+#    minutes = ifelse(is.na(minutes), median(minutes, na.rm = TRUE), minutes)
+#  ) %>%
+#  ungroup()
 
 # Drop the missing values in our target variable
-tennis <- tennis %>% filter(!is.na(minutes))
+#tennis <- tennis %>% filter(!is.na(minutes))
 
 # Calculate the percentage of missing values in rank_diff
 percent_missing_minutes<- sum(is.na(tennis$minutes)) / nrow(tennis) * 100
@@ -401,9 +401,7 @@ Some variables that significantly impact match duration (minutes) include the di
 
 
 ```{r, message = FALSE, warning=FALSE, echo=FALSE}
-# Second linear regression containg more variables
-# Example Target: minutes (match duration).
-
+#inputation
 library(mice)
 library(sjlabelled)
 library(tidyverse)
@@ -421,16 +419,15 @@ tennis.comp$winner_ht.comp <- cci(tennis$winner_ht) #create an indicator for com
 ggplot(tennis.comp, aes(x=factor(.imp), y=winner_ht, fill=winner_ht.comp))+
   geom_boxplot()
 
-
-with(tennis.imp, lm(minutes ~ diff_rank + diff_aces + winner_ht + loser_ht + surface + 
+imp.mods <- with(tennis.imp, lm(minutes ~ diff_rank + diff_aces + winner_ht + loser_ht + surface + 
             tourney_level + winner_age + loser_age + w_df + l_df + 
-            w_bpSaved + l_bpSaved + w_bpFaced + l_bpFaced, data = train))
-
-imp.mods <- with(titanic.imp, glm(survived ~ pclass + age + sex + parch, 
-                                  family="binomial"))
+            w_bpSaved + l_bpSaved + w_bpFaced + l_bpFaced))
 summary(pool(imp.mods))
 
 
+
+
+# Original without inputation:
 set.seed(123)
 train_index <- sample(1:nrow(tennis), 0.8 * nrow(tennis))
 train <- tennis[train_index, ]
@@ -443,14 +440,13 @@ summary(model_linear_2)
 predictions <- predict(model_linear_2, test)
 mean_squared_error <- mean((test$minutes - predictions)^2)
 #print(mean_squared_error)
-
 ```
 
 > Below is the diagnostic plot for the second linear model. 
 
 ```{r, fig.width=9, fig.height=10}
 par(mfrow = c(2,2))
-plots <- plot(model_linear_2)
+plots <- plot(pool(imp.mods))
 ```
 
 Despite achieving a higher adjusted R² compared to the first model, several key assumptions of the linear regression model appear to be violated. The "Residuals vs Fitted" plot indicates potential non-linearity in the relationships between predictors and the response variable, suggesting the model may not be capturing all relevant patterns. The "Q-Q Residuals" plot shows significant deviations from normality, particularly in the tails, which could compromise the reliability of hypothesis tests and confidence intervals. Additionally, the "Scale-Location" plot reveals heteroscedasticity, with residuals showing increasing variance as fitted values grow. While the larger R²suggests the model explains more variance in match duration, these assumption violations indicate that the results may not be entirely valid or interpretable under the linear regression framework, reducing the model's overall reliability. These violations suggest that the model might require transformations, interaction terms, or alternative regression methods to better satisfy these assumptions.
