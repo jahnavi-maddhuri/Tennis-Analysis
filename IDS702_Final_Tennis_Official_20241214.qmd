@@ -258,12 +258,6 @@ tennis <- tennis %>%
 #15720
 ```
 
-> Below is the linear regression analyzing the relationshiop between minutes, surface and ranking differences amongst players
-
-$$
-minutes = β0 +β1⋅(difference) + β2⋅surface + β3(difference*surface) + ϵ
-$$
-
 > Below is the linear regression analyzing the relationshiop between minutes and a multitude of regressors
 
 The second regression model was designed to address the low explanatory power of the initial model, which had a low adjusted R². By incorporating additional predictors such as player performance metrics, tournament levels, and specific match characteristics, the aim was to better capture the complexity of factors affecting match duration (minutes). This approach improved the adjusted R² = 0.57, suggesting that these added variables account for more of the variance in the response variable. The model also includes an interaction term and accounts for more detailed match-level attributes, providing a more comprehensive view of the factors influencing match length.
