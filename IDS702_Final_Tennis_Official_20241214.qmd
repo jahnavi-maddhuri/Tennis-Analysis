@@ -139,6 +139,17 @@ tennis_match <- standardize_columns(tennis_match)
 # Combine all datasets
 tennis <- bind_rows(tennis_qualy_chall,tennis_match) #tennis_futures,
 
+tennis <- tennis %>%
+  mutate(
+    winner_hand = case_when(
+      winner_hand == "" | winner_hand == "U" ~ "A",  # Convert "" or "U" to "A" for winner
+      TRUE ~ winner_hand  # Keep the original value for other cases
+    ),
+    loser_hand = case_when(
+      loser_hand == "" | loser_hand == "U" ~ "A",  # Convert "" or "U" to "A" for loser
+      TRUE ~ loser_hand  # Keep the original value for other cases
+    )
+  )
 # View the combined dataset
 head(tennis)
 dim(tennis)
@@ -147,10 +158,10 @@ tennis %>%
   filter(is.na(winner_rank))
 
 # Subset the rows where winner_ht is NA
-missing_height_players <- tennis %>%
-  filter(is.na(winner_ht)) %>%
-  distinct(winner_name)
-
+#missing_height_players <- tennis %>%
+  #filter(is.na(winner_ht)) %>%
+  #distinct(winner_name)
+#table(tennis$winner_hand)
 ```
 
 ### Overview of key variables of interest
@@ -253,25 +264,6 @@ $$
 minutes = β0 +β1⋅(difference) + β2⋅surface + β3(difference*surface) + ϵ
 $$
 
-```{r, message = FALSE, warning=FALSE, echo=FALSE}
-# First linear regression with only difference in rankings and surface
-model_linear_1 <- lm(minutes ~ diff_rank * surface, data = tennis)
-summary(model_linear_1)
-```
-
-Initially, the goal was to explore the relationship between match duration (minutes) and a limited set of predictors, specifically the difference in rankings and the interaction with surface type. However, the adjusted R² of the initial model was quite low (R² = 0.02), indicating that the predictors explained only a small fraction of the variation in match duration. This suggests that there are likely other important factors influencing the outcome that were not accounted for in the model.
-
-To address this limitation, a second approach was taken to include additional variables in the model, particularly player performance metrics and other contextual factors. The rationale was that these additional predictors might capture more of the complexity and variability inherent in match durations, thereby improving the model's explanatory power and increasing the adjusted R². This step aims to make the model more robust and reflective of the factors that influence match duration.
-
-> Below is the diagnostic plot for the first linear model.
-
-```{r, fig.width=9, fig.height=10}
-par(mfrow = c(2,2))
-plots <- plot(model_linear_1)
-```
-
-The residual diagnostics reveal some violations of the linear regression assumptions, albeit less severe compared to the second model. The "Residuals vs Fitted" plot still shows signs of non-linearity, indicating the model may not adequately capture all patterns in the data. The "Q-Q Residuals" plot suggests moderate deviations from normality, particularly in the tails, which could affect hypothesis testing but to a lesser extent than the expanded model. The "Scale-Location" plot exhibits slight heteroscedasticity, where the variance of residuals increases with fitted values, suggesting the model's predictions may not be equally reliable across all ranges. These issues indicate that while the model may be simpler, its assumptions are not entirely satisfied, and its reliability could still be questioned despite fewer violations (compared to the 2nd model, see below).
-
 > Below is the linear regression analyzing the relationshiop between minutes and a multitude of regressors
 
 The second regression model was designed to address the low explanatory power of the initial model, which had a low adjusted R². By incorporating additional predictors such as player performance metrics, tournament levels, and specific match characteristics, the aim was to better capture the complexity of factors affecting match duration (minutes). This approach improved the adjusted R² = 0.57, suggesting that these added variables account for more of the variance in the response variable. The model also includes an interaction term and accounts for more detailed match-level attributes, providing a more comprehensive view of the factors influencing match length.
@@ -282,6 +274,34 @@ Some variables that significantly impact match duration (minutes) include the di
 ```{r, message = FALSE, warning=FALSE, echo=FALSE}
 # Second linear regression containg more variables
 # Example Target: minutes (match duration).
+
+library(mice)
+library(sjlabelled)
+library(tidyverse)
+# Exclude columns and check data
+tennis.sub <- tennis %>%
+  select(minutes , diff_rank , diff_aces , winner_ht , loser_ht , surface , 
+            tourney_level , winner_age , loser_age , w_df , l_df , 
+            w_bpSaved , l_bpSaved , w_bpFaced , l_bpFaced)  # Exclude irrelevant columns
+
+tennis.sub <- unlabel(tennis.sub) #unlabel the data (labels cause problem for the mice function)
+tennis.imp <- mice(tennis.sub, m=5, method="pmm", print=FALSE, seed = 123)
+tennis.comp <- complete(tennis.imp, "long", include=TRUE) #stack the imputed values into one variable and include he observed values
+tennis.comp$winner_ht.comp <- cci(tennis$winner_ht) #create an indicator for completeness
+
+ggplot(tennis.comp, aes(x=factor(.imp), y=winner_ht, fill=winner_ht.comp))+
+  geom_boxplot()
+
+
+with(tennis.imp, lm(minutes ~ diff_rank + diff_aces + winner_ht + loser_ht + surface + 
+            tourney_level + winner_age + loser_age + w_df + l_df + 
+            w_bpSaved + l_bpSaved + w_bpFaced + l_bpFaced, data = train))
+
+imp.mods <- with(titanic.imp, glm(survived ~ pclass + age + sex + parch, 
+                                  family="binomial"))
+summary(pool(imp.mods))
+
+
 set.seed(123)
 train_index <- sample(1:nrow(tennis), 0.8 * nrow(tennis))
 train <- tennis[train_index, ]
