@@ -1,5 +1,5 @@
 ---
-title: "Study of tennis performance on different surfaces and factors that affect wins"
+title: "Study of tennis athletes performance on different surfaces and factors that affect wins"
 author: 
   - "Alejandro Paredes La Torre, Liangcheng (Jay) Liu"
   - "Nzarama Michaella Desire Kouadio, Jahnavi Maddhuri"
@@ -16,39 +16,49 @@ geometry: margin=0.8in
 
 ## Abstract
 
-This study explores how player rankings and aces affect tennis match outcomes using the Association of Tennis Professionals (ATP) data. The first research topic examines the impact of ranking differences on match duration. The research then evolves to investigate the relationship between the number of aces by a tennis player and that player’s odds of winning. 
-
-Methodology to the study includes exploratory data analysis combined with linear and logistic regression models, supported by visualizations. These findings highlight the connection between player rankings, aces, and match outcomes, while emphasizing the interactive impact of surface type.
-
-Results show that larger ranking gaps lead to shorter matches, though surface type and match conditions also influence duration. Additionally, the findings indicate that hitting more aces improves the odds of winning, with surface types like clay and hard courts playing a significant role in this relationship.
+Modeling key factors that influence professional tennis matches is essential for athletes and teams to address underdeveloped areas and for researchers to enhance the development of young and amateur players. This study uses ATP data to examine the effects of player rankings and aces on match outcomes. It explores how ranking differences impact match duration and investigates the relationship between the number of aces a player hits and their odds of winning. Through exploratory data analysis and regression modeling, the findings reveal that larger ranking gaps lead to shorter matches, though surface types and match conditions also play a role. Additionally, hitting more aces significantly improves a player’s chances of winning, with surface types like clay and hard courts influencing this relationship.
 
 ## Introduction
 
-A substantial body of research has explored the prediction of tennis match outcomes using statistical models, highlighting the importance of player attributes and match statistics. Early studies, such as those by Newton and Keller (2005)\[2\], O'Malley (2008)\[3\], and Riddle (1988)\[4\], demonstrate that under the assumption of independent and identically distributed (iid) point outcomes on a player's serve, the probability of winning a match can be derived from the probabilities of winning points on serve.
+Predicting outcomes in sports has long been a central focus for athletes, teams, and industries alike. Statistical science, when applied to sports, plays a pivotal role in optimizing an athlete’s performance, making it a subject of significant interest for both researchers and commercial enterprises. In professional tennis, analyzing the factors that influence match outcomes offers insights that extend beyond simple predictions, encompassing strategic advancements and broader applications.
 
-Kovalchik (2016) \[5\] conducted a comparison of 11 published tennis prediction models, categorizing them into three classes: point-based models relying on the iid assumption, regression-based models, and paired comparison models. The study found that while point-based models had lower accuracy and higher log loss, regression and paired comparison models generally outperformed them.
+Such insights have practical implications for refining rankings (Klaassen and Magnus, 2003)[16], ratings (Kovalchik, 2016)[17], and seedings(Boulier et. al 1999)[15], serving as a foundation for performance analysis and strategy optimization. Predictive models are pivotal in industries like sports betting, where they drive decision-making and risk management (Foley-Train, 2014)[18]. . In academic research, these models contribute to methodological improvements, as seen in the work of Štrumbelj & Vračar (2012)[6], who explored probabilistic approaches to predicting match outcomes. 
+
+Analyzing professional tennis data bridges practical applications and theoretical advancements. Studies like those by Boulier and Stekler (1999)[7], Lasek, Szlávik, and Bhulai (2013) [8], and McHale and Davies (2007)[9] highlight how data-driven approaches can uncover nuanced patterns in sports, offering a deeper understanding of the game and its predictive dynamics
+
+A growing body of literature underscores the role of data-driven approaches in uncovering intricate patterns within tennis. For instance, Boulier and Stekler (1999)[7] demonstrated how statistical models could be used to assess player performance, while Lasek, Szlávik, and Bhulai (2013)[8] examined predictive methods for ranking systems. McHale and Davies (2007)[9] explored the influence of match dynamics on outcomes, further bridging theoretical advancements with practical applications.
+
+Early foundational studies, such as those by Newton and Keller (2005)\[2\], O'Malley (2008)\[3\], and Riddle (1988)\[4\], established that under the assumption of independent and identically distributed (iid) point outcomes on a player's serve, the probability of winning a match could be derived from serve-point probabilities. These studies laid the groundwork for subsequent research in probabilistic modeling of tennis outcomes.
+
+Kovalchik (2016) \[5\] conducted a comparison of 11 published tennis prediction models, categorizing them into three classes: point-based models relying on the iid assumption, regression-based models, and paired comparison models. The study found that point-based models had lower accuracy and higher log loss, regression and paired comparison models generally outperformed them.
+
+Furthermore, given the importance of player rankings and performance metrics in tennis prediction models, it is essential to understand the context provided by the ATP (Association of Tennis Professionals). This institution is the principal governing body of men's professional tennis. It oversees the ATP Tour, which features the highest level of men's tennis tournaments worldwide, including Grand Slams, Masters 1000 events, and other competitive circuits. The ATP rankings system, introduced in 1973, is used to evaluate and rank players based on their performance in sanctioned tournaments over a rolling 52-week period, serving as a critical metric for seedings and qualifications (ATP Tour, n.d.)[19].
+
+Building on these studies, this research uses the Tennis ATP dataset (Sackmann, 2021) ) to investigate two specific questions:
+
+1. How does the difference in player rankings influence the duration of a tennis match? 
+
+2. How do the number of aces and the court surface type affect a player's odds of winning a match?
 
 ## Methods
 
 ### Data and preprocessing
 
-The dataset utilized in this study is the Tennis ATP Dataset curated by Jeff Sackmann (Sackmann, 2021) \[1\]. This dataset serves as a comprehensive repository of professional tennis data, encompassing a wide range of player information, historical rankings, match outcomes, and statistical metrics. Specifically, it includes a player file containing detailed biographical data, such as unique player identifiers, names, handedness, birth dates, nationalities, and physical attributes like height. Additionally, ranking files provide a historical record of ATP rankings over time, while the results file covers match outcomes across tour-level, challenger, and futures events. This dataset forms a robust foundation for exploring various aspects of professional tennis performance and trends.
+The dataset used in this study is the Tennis ATP Dataset curated by Jeff Sackmann (2021) \[1\]. This dataset serves as a comprehensive repository of professional tennis data, encompassing a wide range of player information, historical rankings, match outcomes, and statistical metrics. This dataset serves as a valuable resource for analyzing trends and performance in professional tennis, forming the basis for addressing the research questions in this study.
 
-The dataset selected includes ATP match data from 2014-2024, the subset chosen are challenger matches and professional and tournament class A such as Davis Cup, Roland Garros and others. The records from this period consist in 116,103 matches where each match has 49 variables.
+The time frame selected includes ATP match data from 2014-2024, the subsets chosen are challenger matches and professional and tournament class A matches such as Davis Cup, Roland Garros and others. The records from this period consist in 116,103 matches where each match has 49 variables. 
 
-The initial collection of data contains features at the match level, therefore it has information from the winner player and the loser player. In order to analyze the effect of match win this structured has been modified to portray the results at the player level, including both win and loss outcomes.
+Regarding the steps to pre process the dataset, missing values were adrressed to prepare for further analysis. Group-wise imputation was performed based on the surface type: missing player heights were replaced with the average height for that surface, and missing match durations were replaced with the median duration for that surface. This approach ensured that missing data was filled in a way that preserved context and prepared the dataset for modeling.
 
-In order to improve the quality of the data, those players that do not have a rank and rank points have been set to zero as the data dictionary explains that unranked players are new to these tournaments. To handle missing values in height, an imputation technique is used where player height is estimated using the average of the country of birth of the player.
-
-Furthermore, rows where the number of aces played is missing have been removed as this is key information in our research questionanalyzing that matches whose number of aces for the winner nor the loser are missing lack all the statistical information from the the other aspects of the match therefore those records have been filtered. The same rationale applies to the serving games as it signals records that have missing information overall therefore those records have been filtered out from the analysis data.
-
-Lastly, for highly correlated information, ratios have been computed to continue to capture granularity in information, but also reduce the number of variables needed in any model, minimizing multicollinearity.
-
-On the other hand to assess the effect of factors on the match length, missing values in the dataset were adrressed to prepare for further analysis. Group-wise imputation was performed based on the surface type: missing player heights were replaced with the average height for that surface, and missing match durations were replaced with the median duration for that surface. This approach ensured that missing data was filled in a way that preserved context and prepared the dataset for modeling.
-
-Moreover, the difference in the number of aces, rankings, and ranking points between the winner and loser was calculated. These perfomance metrics aim to provide more tangible and interpretable predictors for the model by focusing on measurable aspects of the players performance. Grouping variables into performance metrics also helps to frame the analysis in a way that aligns with the context of the sport and makes the regressors more meaningful and insightful.
+Pertaining the research question one, to assess the effect of factors on the match length, the difference in the number of aces, rankings, and ranking points between the winner and loser was calculated. These perfomance metrics aim to provide more tangible and interpretable predictors for the model by focusing on measurable aspects of the players performance. Grouping variables into performance metrics also helps to frame the analysis in a way that aligns with the context of the sport and makes the regressors more meaningful and insightful.
 
 Finally, rows with missing values for match duration (our target variable) were removed since only 8% of the data was affected. This approach is acceptable because the missing proportion is relatively small, and our target variable needs to be complete for modeling purposes.
+
+To address the second research question, which focuses on analyzing match outcomes, additional data processing steps were taken. The original dataset, which contains match-level features with information on both the winner and loser in a single record, was restructured. This transformation reorganized the data at the player level, ensuring that each record represents either a win or a loss for a given player. This adjustment allows for a more focused analysis of the factors influencing match outcomes.
+
+Additionally, rows with missing values for the number of aces have been excluded, as this information is crucial for addressing the second research question. Matches where either the winner's or the loser's ace count is missing lack essential statistical details about the match, making these records incomplete for analysis. As such, these records have been filtered out. A similar approach was applied to serving games, as missing data in this variable indicates that other critical match information is also absent, further justifying their exclusion.
+
+Lastly, for highly correlated information, a VIF technique was used ratios have been computed to continue to capture granularity in information, but also reduce the number of variables needed in any model, minimizing multicollinearity.
 
 ### Variable selection
 
@@ -130,6 +140,12 @@ dim(tennis)
 sum(is.na(tennis$minutes))
 tennis %>%
   filter(is.na(winner_rank))
+
+# Subset the rows where winner_ht is NA
+missing_height_players <- tennis %>%
+  filter(is.na(winner_ht)) %>%
+  distinct(winner_name)
+
 ```
 
 ```{r , message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
@@ -270,8 +286,14 @@ tennis_long <- tennis_long %>%
 ### Overview of key variables of interest
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
-tennis_long %>% group_by(win) %>% summarize(count = n())
-tennis %>% group_by(surface) %>% summarize(count = n(), proportion = n()/116050)
+tennis_long %>%
+  group_by(win) %>%
+  dplyr::summarize(count = n())
+
+tennis %>%
+  group_by(surface) %>%
+  dplyr::summarize(count = n(), proportion = n()/116050)
+
 ```
 The dataset has a fairly even distribution of players that Win (101746) and Lose (111621), implying that there would not be more information gain in one outcome over the other. The surface types do not have as balanced of a distribution. Majority of the matches are played on a Hard or Clay surface, accounting for 53.5% and 41.1% of the matches. About 5% of the matches are played on Grass and only 0.2% on Carpet.
 Below we consider the distribution of the key continuous variables:
@@ -348,6 +370,11 @@ tennis <- tennis %>%
     winner_ht = ifelse(winner_ht > 210, 210, winner_ht),
     loser_ht = ifelse(loser_ht > 210, 210, loser_ht)
   )
+
+#winner_seed
+#loser_seed
+
+#15720
 ```
 
 > Below is the linear regression analyzing the relationshiop between minutes, surface and ranking differences amongst players
@@ -356,7 +383,7 @@ $$
 minutes = β0 +β1⋅(difference) + β2⋅surface + β3(difference*surface) + ϵ
 $$
 
-```{r, message = FALSE, warning=FALSE, echo=FASLE}
+```{r, message = FALSE, warning=FALSE, echo=FALSE}
 # First linear regression with only difference in rankings and surface
 model_linear_1 <- lm(minutes ~ diff_rank * surface, data = tennis)
 summary(model_linear_1)
@@ -382,7 +409,7 @@ The second regression model was designed to address the low explanatory power of
 Some variables that significantly impact match duration (minutes) include the difference in rank between players, which shows a strong negative association, indicating that matches with greater rank disparity are shorter. The number of breakpoints saved by the winner has a significant positive effect, suggesting that matches where the winner saves more breakpoints tend to last longer. Lastly, the difference in aces between players negatively affects match duration, with matches showing a greater disparity in aces being resolved more quickly. These variables emphasize the importance of player performance and competitive dynamics in determining match length.
 
 
-```{r, message = FALSE, warning=FALSE, echo=FASLE}
+```{r, message = FALSE, warning=FALSE, echo=FALSE}
 # Second linear regression containg more variables
 # Example Target: minutes (match duration).
 set.seed(123)
@@ -412,7 +439,8 @@ Despite achieving a higher adjusted R² compared to the first model, several key
 
 ### **Research question 2: Aces and court surface type influence in match outcome**
 
-```{r message = FALSE, warning=FALSE, echo=FASLE, include=FALSE, results = 'hide'}
+```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+conflicts_prefer(dplyr::summarize)
 # Convert tourney level to ordinal variable:
   ## 0 = D (Davis Cup): Team competition, often less prestigious on an individual level.
   ## 1 = C (Challengers): Lower-tier tournaments below the main ATP Tour.
@@ -448,8 +476,9 @@ mod_new_var <- glm(win ~ draw_size + tourney_level_ord + player_hand + player_he
 vif(mod_new_var)
   # 2.1. RESULTS: draw_size and tourney_level_ord have high VIF scores
 tennis_long %>%
-  group_by(tourney_level_ord) %>%
+  group_by(tourney_level_ord) %>% 
   summarize(mean = mean(draw_size), min = min(draw_size), max = max(draw_size))
+
   # 2.2. Remove tourney_level as more granular info comes from draw_size
 
   # 3. Final model
@@ -462,7 +491,7 @@ tennis_long %>%
 ```
 
 The results for the final fitted model for win prediction are in the Anex I since the table is large. The selected variables along with the interaction term of the type of surface was included. Multiple iterations to find the best model were performed and multicolinearity evaluations were used to assess the model. To evaluate multicollinearity, the VIF score was used on a logistic regression model. The raw variables representing a player's total serve points, number of first serve points made, number of first serve points won, number of second serve points won, number of break points faced, number of break points saved, total draw size in the tournament and the tournament level were all highly correlated. To address the multicollinearity in serve variables, ratios of successful serves for the first and second attempt were generated. Similarly, the break points saved ratio is used in place of the overall counts. Lastly, between draw size and tournament level, draw size is only used as there is more granular information derived from draw size than tournament level.
-```{r message = FALSE, warning=FALSE, echo=FASLE, include=FALSE, results = 'hide'}
+```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # Model based on above identified columns and lasso regularization to limit variables and prevent overfitting:
 tennis_long_clean <- tennis_long[complete.cases(tennis_long[, c("win", "draw_size", "player_hand", "player_height", 
                                                                "player_age", "rank", "rank_points", "double_faults", 
@@ -635,3 +664,21 @@ Overall, while every additional ace does improve the probability of a player win
 \[4\] Riddle, L. H. (1988). Probability models for tennis scoring systems. Journal of the Royal Statistical Society Series C: Applied Statistics, 37(1), 63-75.
 
 \[5\] Kovalchik, S. A. (2016). Searching for the GOAT of tennis win prediction. Journal of Quantitative Analysis in Sports, 12(3), 127-138.
+
+\[6\] Štrumbelj, E., & Vračar, P. (2012). Simulating a basketball match with a homogeneous Markov model and forecasting the outcome. International Journal of Forecasting, 28(2), 532-542.
+
+\[7\] Boulier, B. L., & Stekler, H. O. (1999). Are sports seedings good predictors?: an evaluation. International Journal of Forecasting, 15(1), 83-91.
+
+\[8\] Lasek, J., Szlávik, Z., & Bhulai, S. (2013). The predictive power of ranking systems in association football. International Journal of Applied Pattern Recognition, 1(1), 27-46.
+
+\[9\] Sklenička, J. (2024). Predicting the outcomes of tennis matches. How important is the factor of different surfaces?.
+
+[15] Boulier, B. L., & Stekler, H. O. (1999). Are sports seedings good predictors?: an evaluation. International Journal of Forecasting, 15(1), 83-91.
+
+[16] Klaassen, F. J., & Magnus, J. R. (2003). Forecasting the winner of a tennis match. European Journal of Operational Research, 148(2), 257-267.
+
+[17] Kovalchik, S. A. (2016). Searching for the GOAT of tennis win prediction. Journal of Quantitative Analysis in Sports, 12(3), 127-138.
+
+[18] Foley-Train, J. (2014). Sports betting: Commercial and integrity issues. Report prepared for the Association of British Bookmakers, European Gaming and Betting Association, European Sport Security Association and Remote Gambling Association. Retrieved January, 21, 2015.
+
+[19] ATP Tour. (n.d.). About the ATP. Retrieved from https://www.atptour.com
