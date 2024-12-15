@@ -323,11 +323,11 @@ The dataset shows a fairly balanced distribution of players who win (101,746) ve
 summary_table <- data.frame(
   Variable = c("minutes", "rank", "aces"),
   Min = c(min(tennis$minutes, na.rm = TRUE), min(tennis_long$rank, na.rm = TRUE), min(tennis_long$aces, na.rm = TRUE)),
-  `Q1` = c(quantile(tennis$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
+  #`Q1` = c(quantile(tennis$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
   Mean = c(mean(tennis$minutes, na.rm = TRUE), mean(tennis_long$rank, na.rm = TRUE), mean(tennis_long$aces, na.rm = TRUE)),
   Median = c(median(tennis$minutes, na.rm = TRUE), median(tennis_long$rank, na.rm = TRUE), median(tennis_long$aces, na.rm = TRUE)),
   `Std. Deviation` = c(sd(tennis$minutes, na.rm = TRUE), sd(tennis_long$rank, na.rm = TRUE), sd(tennis_long$aces, na.rm = TRUE)),
-  `Q3` = c(quantile(tennis$minutes, 0.75, na.rm = TRUE), quantile(tennis_long$rank, 0.75, na.rm = TRUE), quantile(tennis_long$aces, 0.75, na.rm = TRUE)),
+  #`Q3` = c(quantile(tennis$minutes, 0.75, na.rm = TRUE), quantile(tennis_long$rank, 0.75, na.rm = TRUE), quantile(tennis_long$aces, 0.75, na.rm = TRUE)),
   Max = c(max(tennis$minutes, na.rm = TRUE), max(tennis_long$rank, na.rm = TRUE), max(tennis_long$aces, na.rm = TRUE))
 )
 
