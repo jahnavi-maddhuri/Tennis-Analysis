@@ -628,6 +628,7 @@ y <- tennis_long_clean$win
 
 # Print final model coefficients
 #print(coef(final_lasso_model))
+
 ```
 
 Mentioned in the methodology section of this document, a multiple imputation technique with the mice package was applied to handle non systematic missing data correspondent to the variable height. Presented below is a summary of the final logistic regression model:
@@ -637,6 +638,20 @@ Mentioned in the methodology section of this document, a multiple imputation tec
 library(mice)
 library(sjlabelled)
 library(tidyverse)
+
+# Load necessary libraries
+library(mice)
+library(sjlabelled)
+library(tidyverse)
+library(caret)    # For confusionMatrix
+library(knitr)    # For kable
+library(kableExtra)
+# Load necessary libraries
+library(pROC)
+library(ggplot2)
+
+tennis_long_clean <- tennis_long_clean  %>%
+  mutate(break_pt_save_ratio = break_pt_save_ratio*100)
 # Exclude columns and check data
 tennis_long.sub <- tennis_long_clean %>%
   select(win, draw_size , player_hand,  player_height,  player_age, rank, rank_points, aces, surface, double_faults, break_pt_save_ratio)  # Exclude irrelevant columns
@@ -648,8 +663,8 @@ tennis_long.imp <- mice(tennis_long.sub, m=5, method="pmm", print=FALSE, seed = 
 tennis_long.comp <- complete(tennis_long.imp, "long", include=TRUE) #stack the imputed values into one variable and include the observed values
 tennis_long.comp$player_height.comp <- cci(tennis_long_clean$player_height) #create an indicator for completeness
 
-ggplot(tennis_long.comp, aes(x=factor(.imp), y=player_height, fill=player_height.comp))+
-  geom_boxplot()
+#ggplot(tennis_long.comp, aes(x=factor(.imp), y=player_height, fill=player_height.comp))+
+#  geom_boxplot()
 
 imp.mods_long <- with(tennis_long.imp, glm(win ~ draw_size + player_hand+ player_height +  player_age + rank + rank_points + aces*surface  + double_faults + break_pt_save_ratio,
                family="binomial"))
@@ -664,24 +679,28 @@ lower_ci <- exp(coefficients - 1.96 * std_errors)  # Lower bound of 95% CI
 upper_ci <- exp(coefficients + 1.96 * std_errors)  # Upper bound of 95% CI
 p_values <- coef_summary$p.value
 
-# Create a data frame to organize the results
+# Combine confidence intervals into a single column and add the standard error
 coeff_df <- data.frame(
   term = coef_summary$term,
   coefficient = round(coefficients, 2),
+  std_error = round(std_errors, 2),  # Add standard error
   exp_coefficient = round(exp_coefficients, 2),
-  lower_ci = round(lower_ci, 2),
-  upper_ci = round(upper_ci, 2),
+  ci = paste0(" (", round(lower_ci, 2), ", ", round(upper_ci, 2), ")"),  # Combine CI into one column
   p_value = round(p_values, 2),
   stringsAsFactors = FALSE
 )
 
-# Format and display the table using kable
-colnames(coeff_df) <- c("Variable", "Coefficient", "Odds Ratio", "Lower 95% CI", "Upper 95% CI", "P-value")
-kable(coeff_df, caption = "Logistic Regression Coefficients, Odds Ratios, Confidence Intervals, and P-values")
+# Rename columns for clarity
+colnames(coeff_df) <- c("Variable", "Coefficient","Standard Error", "Odds Ratio", "95% CI", "P-value")
+
+# Create the table and align all columns to the right
+kable(coeff_df, caption = "Logistic Regression Coefficients, Odds Ratios, Confidence Intervals, Standard Errors, and P-values", 
+      align = c("l", "r", "r", "r", "r", "r")) %>%  # Align first column to the left and others to the right
+  kable_styling(full_width = FALSE)
 
 ```
 
-Analyzing the variables of interest aces and surface, holding every other variable constant, applying exponential we have an effect of 1.1 times increase in odds of winning for every extra ace point. Similarly matches on Clay and Hard surfaces increase the odds of winning in comparison to playing on a Carpet by 2.1 and 1.7 times respectively. Surprisingly, the impact of every extra ace point is not statistically significant between the different surface types. Another statistically significant variable impacting the odds of winning is the right vs left-handed stature of the player. Specifically being Right or Left Handed (as opposed to undefined) is associated with approximately 9.7 times increase in odds of winning.
+Analyzing the variables of interest aces and surface, we have an effect of 1.12 times increase in odds of winning for every extra ace point when the match is disputed on a clay surface, with a combined confidence interval between 1.03 and 1.19, considering that the variable aces is statistically significant while the interation terms are not. Similarly, for matches played on Grass the model has a combined effect increasing the odds of winning by 1.08 times. The impact of every extra ace point while playing on hard surfaces represent a combine effect of 1.09 increse in the odds of winning the match. Another statistically significant variable impacting the odds of winning is the right vs left-handed stature of the player. Specifically being Right or Left Handed (as opposed to ambidextrous) is associated with approximately 1.35 times increase in odds of winning. Furthermore, the break point serve ration explains an effect of 1.213 times the increase in odds of winning.
 
 ```{r , message=FALSE, warning=FALSE}
 
@@ -731,44 +750,44 @@ ggplot(roc_data, aes(x = FPR, y = TPR)) +
 
 ```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # Load necessary libraries
-library(caret)    # For confusionMatrix
-library(knitr)    # For kable
-library(kableExtra)
-# Generate predictions
-pred_probs <- predict(pool(imp.mods_long), type = "response")
-pred_binary <- ifelse(pred_probs > 0.5, 1, 0)
-pred_binary <- factor(pred_binary, levels = c(0, 1), labels = c("Loss", "Win"))
-
-# Create a confusion matrix
-conf_matrix <- confusionMatrix(pred_binary, tennis_long_clean$win)
-
-conf_matrix_table <- conf_matrix$table
-conf_matrix_df <- as.data.frame.matrix(conf_matrix_table)
-#conf_matrix_df <- cbind(Actual = rownames(conf_matrix_df), conf_matrix_df)
-conf_matrix_latex <- conf_matrix_df %>%
-  kable("latex", booktabs = TRUE, 
-        caption = "Confusion Matrix: Actual vs. Predicted Satisfaction",
-        align = "c") %>%
-  kable_styling(latex_options = c("striped", "hold_position"))
-
-# Extract and prepare the metrics for display
-metrics <- data.frame(
-  Metric = c("Accuracy", "Precision", "Recall", "F1 Score", "Specificity", "Sensitivity", "Positive Predictive Value", "Negative Predictive Value"),
-  Value = c(
-    conf_matrix$overall['Accuracy'],
-    conf_matrix$byClass['Pos Pred Value'],
-    conf_matrix$byClass['Sensitivity'],
-    conf_matrix$byClass['F1'],
-    conf_matrix$byClass['Specificity'],
-    conf_matrix$byClass['Sensitivity'],
-    conf_matrix$byClass['Pos Pred Value'],
-    conf_matrix$byClass['Neg Pred Value']
-  )
-)
-
-# Display the metrics using kable
-#cat("\nMetrics:\n")
-kable(metrics, format = "markdown", col.names = c("Metric", "Value"))
+# library(caret)    # For confusionMatrix
+# library(knitr)    # For kable
+# library(kableExtra)
+# # Generate predictions
+# pred_probs <- predict(pool(imp.mods_long), type = "response")
+# pred_binary <- ifelse(pred_probs > 0.5, 1, 0)
+# pred_binary <- factor(pred_binary, levels = c(0, 1), labels = c("Loss", "Win"))
+# 
+# # Create a confusion matrix
+# conf_matrix <- confusionMatrix(pred_binary, tennis_long_clean$win)
+# 
+# conf_matrix_table <- conf_matrix$table
+# conf_matrix_df <- as.data.frame.matrix(conf_matrix_table)
+# #conf_matrix_df <- cbind(Actual = rownames(conf_matrix_df), conf_matrix_df)
+# conf_matrix_latex <- conf_matrix_df %>%
+#   kable("latex", booktabs = TRUE, 
+#         caption = "Confusion Matrix: Actual vs. Predicted Satisfaction",
+#         align = "c") %>%
+#   kable_styling(latex_options = c("striped", "hold_position"))
+# 
+# # Extract and prepare the metrics for display
+# metrics <- data.frame(
+#   Metric = c("Accuracy", "Precision", "Recall", "F1 Score", "Specificity", "Sensitivity", "Positive Predictive Value", "Negative Predictive Value"),
+#   Value = c(
+#     conf_matrix$overall['Accuracy'],
+#     conf_matrix$byClass['Pos Pred Value'],
+#     conf_matrix$byClass['Sensitivity'],
+#     conf_matrix$byClass['F1'],
+#     conf_matrix$byClass['Specificity'],
+#     conf_matrix$byClass['Sensitivity'],
+#     conf_matrix$byClass['Pos Pred Value'],
+#     conf_matrix$byClass['Neg Pred Value']
+#   )
+# )
+# 
+# # Display the metrics using kable
+# #cat("\nMetrics:\n")
+# kable(metrics, format = "markdown", col.names = c("Metric", "Value"))
 ```
 
 The performance of the logistic regression model was evaluated using standard classification metrics, including accuracy, precision, recall, and F1 score. The model achieved an accuracy of 0.8117, indicating that approximately 81.17% of predictions matched the true outcomes. The precision of the model was 0.8230, reflecting its ability to correctly identify positive cases while minimizing false positives. The recall was measured at 0.8155, demonstrating the model's capability to correctly identify a high proportion of actual positive cases. Finally, the F1 score, a harmonic mean of precision and recall, was calculated to be 0.8192, indicating a balanced performance between these two metrics. Together, these results suggest the model performs reliably in predicting match outcomes based on the given features.
