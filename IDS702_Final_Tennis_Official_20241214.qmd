@@ -305,8 +305,7 @@ tennis %>%
   dplyr::summarize(count = n(), proportion = n()/116050)
 
 ```
-The dataset has a fairly even distribution of players that Win (101746) and Lose (111621), implying that there would not be more information gain in one outcome over the other. The surface types do not have as balanced of a distribution. Majority of the matches are played on a Hard or Clay surface, accounting for 53.5% and 41.1% of the matches. About 5% of the matches are played on Grass and only 0.2% on Carpet.
-Below we consider the distribution of the key continuous variables:
+The dataset has a fairly even distribution of players that Win (101746) and Lose (111621), implying that there would not be more information gain in one outcome over the other. The surface types do not have as balanced of a distribution. Majority of the matches are played on a Hard or Clay surface, accounting for 53.5% and 41.1% of the matches. About 5% of the matches are played on Grass and only 0.2% on Carpet. Below it is considered the distribution of the key continuous variables.
 
 # Pending
 
@@ -314,10 +313,10 @@ Below we consider the distribution of the key continuous variables:
 summary_table <- data.frame(
   Variable = c("minutes", "rank", "aces"),
   Minimum = c(min(tennis_long$minutes, na.rm = TRUE), min(tennis_long$rank, na.rm = TRUE), min(tennis_long$aces, na.rm = TRUE)),
-  `Quantile 1` = c(quantile(tennis_long$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
+  `Q1` = c(quantile(tennis_long$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
   Mean = c(mean(tennis$minutes, na.rm = TRUE), mean(tennis_long$rank, na.rm = TRUE), mean(tennis_long$aces, na.rm = TRUE)),
   Median = c(median(tennis$minutes, na.rm = TRUE), median(tennis_long$rank, na.rm = TRUE), median(tennis_long$aces, na.rm = TRUE)),
-  `Quantile 3` = c(quantile(tennis$minutes, 0.75, na.rm = TRUE), quantile(tennis_long$rank, 0.75, na.rm = TRUE), quantile(tennis_long$aces, 0.75, na.rm = TRUE)),
+  `Q3` = c(quantile(tennis$minutes, 0.75, na.rm = TRUE), quantile(tennis_long$rank, 0.75, na.rm = TRUE), quantile(tennis_long$aces, 0.75, na.rm = TRUE)),
   Maximum = c(max(tennis$minutes, na.rm = TRUE), max(tennis_long$rank, na.rm = TRUE), max(tennis_long$aces, na.rm = TRUE))
 )
 
@@ -343,19 +342,6 @@ tennis <- tennis %>%
     winner_seeded = ifelse(is.na(winner_seed), 0, 1),
     loser_seeded = ifelse(is.na(loser_seed), 0, 1)
   )
-
-# Group-wise imputation: ensure that replacements respect the context of the surface variable
-#tennis <- tennis %>%
-#  group_by(surface) %>%
-#  mutate(
-#    winner_ht = ifelse(is.na(winner_ht), mean(winner_ht, na.rm = TRUE), winner_ht),
-#    loser_ht = ifelse(is.na(loser_ht), mean(loser_ht, na.rm = TRUE), loser_ht),
-#    minutes = ifelse(is.na(minutes), median(minutes, na.rm = TRUE), minutes)
-#  ) %>%
-#  ungroup()
-
-# Drop the missing values in our target variable
-#tennis <- tennis %>% filter(!is.na(minutes))
 
 # Calculate the percentage of missing values in rank_diff
 percent_missing_minutes<- sum(is.na(tennis$minutes)) / nrow(tennis) * 100
@@ -415,7 +401,6 @@ ggplot(tennis.comp, aes(x=factor(.imp), y=winner_ht, fill=winner_ht.comp))+
 
 
 Match duration in tennis is influenced by a variety of factors, including tournament level, player performance, court surface, and physical characteristics.
-
 The type of tournament significantly affects match duration, with a clear trend emerging when comparing lower and higher levels to the baseline (level A). Matches at level D (Beginner) and level C (Intermediate) tend to be shorter, with level C showing a 3.1% decrease in duration compared to level A (95% CI: -3.7%, -2.5%, p < 0.001). This indicates that lower-level tournaments are associated with shorter match durations. However, as tournament levels rise above C, match duration increases significantly. For instance, matches at level G extend by 21.9% (95% CI: 20.9%, 22.8%, p < 0.001).
 
 Differences in player performance, such as aces, also influence match duration. For every additional ace difference between players, match duration increases by 1% (95% CI: 0.9%, 1.1%, p < 0.001). This indicates that strong serving performances often lead to prolonged matches, as players must engage in more games and sets.
@@ -492,7 +477,7 @@ mean_r2 <- mean(r2_values)
 mean_r2
 ```
 
-It is important to examine the underlying assumptions of our model to ensure that the regression estimates are both reliable and valid, providing meaningful insights into the data. The model assumption is assessed by residual vs. fitted plot. The log transformation was applied to our target variable (minutes) in order to reduce skewness, stabilize variance, and improve the normality of the residuals, ensuring the assumptions of linear regression are better met. Even though, we observe slight deviations in the normality curve and a pattern that suggests non linearity, the assumptions are not severely violated, which is acceptable for reliable linear regression estimates.
+It is important to examine the underlying assumptions of our model to ensure that the regression estimates are both reliable and valid, providing meaningful insights into the data. The model assumptions is assessed by residual vs. fitted plot. The log transformation was applied to our target variable (minutes) in order to reduce skewness, stabilize variance, and improve the normality of the residuals, ensuring the assumptions of linear regression are better met. Even though, we observe slight deviations in the normality curve and a pattern that suggests non linearity, the assumptions are not severely violated, which is acceptable for reliable linear regression estimates.
 
 Furthermore, the Variance Inflation Factor (VIF) values for all variables in our model are within acceptable ranges. While the interaction term between rank difference and tournament level shows high raw collinearity with its main effects, this is expected as interaction terms naturally combine the variables they interact with. The remaining predictors show minimal multicollinearity, ensuring the model's estimates remain stable and reliable.
 
@@ -630,7 +615,7 @@ tennis_long %>%
   summarize(mean = mean(draw_size), min = min(draw_size), max = max(draw_size))
 ```
 
-To structure this model the relevant variables in related literature as well as the variables of interes along with the interaction term of the type of surface were included. To evaluate multicollinearity, the VIF score was used on an initial logistic regression model including all the variables selected. The raw variables representing a player's total serve points, number of first serve points made, number of first serve points won, number of second serve points won, number of break points faced, number of break points saved, total draw size in the tournament and the tournament level were all highly correlated. It was found that total number of serves attempted, first serves attempted, first serve points won and second serve points one were highly correlated with VIF scores ranging from 9 to 72.
+To structure this model the relevant variables in related literature as well as the variables of interest along with the interaction term of the type of surface were included. To evaluate multicollinearity, the VIF score was used on an initial  logistic regression model including all the variables selected. The raw variables representing a player's total serve points, number of first serve points made, number of first serve points won, number of second serve points won, number of break points faced, number of break points saved, total draw size in the tournament and the tournament level were all highly correlated. It was found that total number of serves attempted, first serves attempted, first serve points won and second serve points one were highly correlated with VIF scores ranging from 9 to 72.
 
 To continue to capture this information, but limit multicollinearity, we combine these into the total first serve points won ratio which is a ratio of the total first serve points won to the total first serves attempted. Similarly, the total second serve points won ratio is the ratio of the total second serve points won to the difference between the total serves attempted and the total first serves attempted. The new VIF scores for these two ratios were less than 1.3 Similarly, the break points saved ratio is used in place of the overall counts. Lastly, between draw size and tournament level, draw size is only used as there is more granular information derived from draw size than tournament level.
 
@@ -677,7 +662,7 @@ y <- tennis_long_clean$win
 
 ```
 
-Mentioned in the methodology section of this document, a multiple imputation technique with the mice package was applied to handle non systematic missing data correspondent to the variable height. Presented below is a summary of the final logistic regression model:
+Mentioned in the methodology section of this document, a multiple imputation technique with the mice package was applied to handle non systematic missing data correspondent to the variable height. Presented below is a summary of the final logistic regression model.
 
 ```{r}
 #inputation
