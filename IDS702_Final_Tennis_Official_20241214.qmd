@@ -295,7 +295,7 @@ sum(is.na(tennis_long$draw_size))
 
 ### Overview of key variables of interest
 
-```{r message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 tennis_long %>%
   group_by(win) %>%
   dplyr::summarize(count = n())
@@ -309,7 +309,7 @@ The dataset has a fairly even distribution of players that Win (101746) and Lose
 
 # Pending
 
-```{r warning=FALSE, echo=FALSE}
+```{r, warning=FALSE, echo=FALSE}
 summary_table <- data.frame(
   Variable = c("minutes", "rank", "aces"),
   Minimum = c(min(tennis_long$minutes, na.rm = TRUE), min(tennis_long$rank, na.rm = TRUE), min(tennis_long$aces, na.rm = TRUE)),
@@ -479,9 +479,6 @@ mean_r2
 
 It is important to examine the underlying assumptions of our model to ensure that the regression estimates are both reliable and valid, providing meaningful insights into the data. The model assumptions is assessed by residual vs. fitted plot. The log transformation was applied to our target variable (minutes) in order to reduce skewness, stabilize variance, and improve the normality of the residuals, ensuring the assumptions of linear regression are better met. Even though, we observe slight deviations in the normality curve and a pattern that suggests non linearity, the assumptions are not severely violated, which is acceptable for reliable linear regression estimates.
 
-Furthermore, the Variance Inflation Factor (VIF) values for all variables in our model are within acceptable ranges. While the interaction term between rank difference and tournament level shows high raw collinearity with its main effects, this is expected as interaction terms naturally combine the variables they interact with. The remaining predictors show minimal multicollinearity, ensuring the model's estimates remain stable and reliable.
-
-
 ```{r, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 par(mfrow = c(2,2))
 
@@ -564,7 +561,7 @@ This scatterplot shows the relationship between Rank Difference (x-axis) and Mat
 
 ### **Research question 2: Aces and court surface type influence in match outcome**
 
-```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+```{r, message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 conflicts_prefer(dplyr::summarize)
 # Convert tourney level to ordinal variable:
   ## 0 = D (Davis Cup): Team competition, often less prestigious on an individual level.
@@ -619,7 +616,7 @@ To structure this model the relevant variables in related literature as well as 
 
 To continue to capture this information, but limit multicollinearity, we combine these into the total first serve points won ratio which is a ratio of the total first serve points won to the total first serves attempted. Similarly, the total second serve points won ratio is the ratio of the total second serve points won to the difference between the total serves attempted and the total first serves attempted. The new VIF scores for these two ratios were less than 1.3 Similarly, the break points saved ratio is used in place of the overall counts. Lastly, between draw size and tournament level, draw size is only used as there is more granular information derived from draw size than tournament level.
 
-```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+```{r, message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # Model based on above identified columns and lasso regularization to limit variables and prevent overfitting:
 
 #tennis_long_clean <- tennis_long[complete.cases(tennis_long[, c("win", "draw_size", "player_hand", "player_height", 
@@ -664,7 +661,7 @@ y <- tennis_long_clean$win
 
 Mentioned in the methodology section of this document, a multiple imputation technique with the mice package was applied to handle non systematic missing data correspondent to the variable height. Presented below is a summary of the final logistic regression model.
 
-```{r}
+```{r, message = FALSE, warning=FALSE, echo=FALSE}
 #inputation
 library(mice)
 library(sjlabelled)
@@ -731,9 +728,9 @@ kable(coeff_df, caption = "Logistic Regression Coefficients, Odds Ratios, Confid
 
 ```
 
-Analyzing the variables of interest aces and surface, we have an effect of 1.12 times increase in odds of winning for every extra ace point when the match is disputed on a clay surface, with a combined confidence interval between 1.03 and 1.19, considering that the variable aces is statistically significant while the interation terms are not. Similarly, for matches played on Grass the model has a combined effect increasing the odds of winning by 1.08 times. The impact of every extra ace point while playing on hard surfaces represent a combine effect of 1.09 increse in the odds of winning the match. Another statistically significant variable impacting the odds of winning is the right vs left-handed stature of the player. Specifically being Right or Left Handed (as opposed to ambidextrous) is associated with approximately 1.35 times increase in odds of winning. Furthermore, the break point serve ration explains an effect of 1.213 times the increase in odds of winning.
+Analyzing the variables of interest aces and surface, we have an effect of 1.12 times increase in odds of winning for every extra ace point when the match is disputed on a clay surface, with a combined confidence interval between 1.03 and 1.19, considering that the variable aces is statistically significant while the interation terms are not. Similarly, for matches played on Grass the model has a combined effect increasing the odds of winning by 1.08 times. The impact of every extra ace point while playing on hard surfaces represent a combine effect of 1.09 increse in the odds of winning the match. Another statistically significant variable impacting the odds of winning is the right vs left-handed stature of the player. Specifically being Right or Left Handed (as opposed to ambidextrous) is associated with approximately 1.35 times increase in odds of winning. Furthermore, the break point serve ration explains an effect of 1.03 times the increase in odds of winning.
 
-```{r , message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 
 # Load necessary libraries
 library(mice)
@@ -779,7 +776,7 @@ ggplot(roc_data, aes(x = FPR, y = TPR)) +
 ```
 
 
-```{r message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+```{r, message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # Load necessary libraries
 # library(caret)    # For confusionMatrix
 # library(knitr)    # For kable
@@ -822,7 +819,7 @@ ggplot(roc_data, aes(x = FPR, y = TPR)) +
 ```
 
 The performance of the logistic regression model was evaluated using standard classification metrics, including accuracy, precision, recall, and F1 score. The model achieved an accuracy of 0.8117, indicating that approximately 81.17% of predictions matched the true outcomes. The precision of the model was 0.8230, reflecting its ability to correctly identify positive cases while minimizing false positives. The recall was measured at 0.8155, demonstrating the model's capability to correctly identify a high proportion of actual positive cases. Finally, the F1 score, a harmonic mean of precision and recall, was calculated to be 0.8192, indicating a balanced performance between these two metrics. Together, these results suggest the model performs reliably in predicting match outcomes based on the given features.
-```{r, message = FALSE, warning=FALSE, echo=FALSE}
+```{r message = FALSE, warning=FALSE, echo=FALSE}
 ggplot(tennis_long_clean, aes(x = win, y = aces, fill = surface)) +
   geom_boxplot() +
   scale_fill_manual(values = c("Clay" = "brown", "Grass" = "green", "Hard" = "blue")) +
