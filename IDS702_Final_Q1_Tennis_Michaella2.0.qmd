@@ -1,0 +1,416 @@
+---
+title: "Study of tennis performance on different surfaces and factors that affect wins"
+author: 
+  - "Alejandro Paredes La Torre, Liangcheng (Jay) Liu"
+  - "Nzarama Michaella Desire Kouadio, Jahnavi Maddhuri"
+subtitle: "2024-12-15"
+format: pdf
+header-includes:
+      - \usepackage{float}
+      - \usepackage{authblk}
+      - \floatplacement{table}{H}
+execute:
+  echo: false
+geometry: margin=0.8in
+---
+
+## Abstract
+
+This study explores how player rankings and aces affect tennis match outcomes using the Association of Tennis Professionals (ATP) data. The first research topic examines the impact of ranking differences on match duration. The research then evolves to investigate the relationship between the number of aces by a tennis player and that player’s odds of winning. 
+
+Methodology to the study includes exploratory data analysis combined with linear and logistic regression models, supported by visualizations. These findings highlight the connection between player rankings, aces, and match outcomes, while emphasizing the interactive impact of surface type.
+
+Results show that larger ranking gaps lead to shorter matches, though surface type and match conditions also influence duration. Additionally, the findings indicate that hitting more aces improves the odds of winning, with surface types like clay and hard courts playing a significant role in this relationship.
+
+## Introduction
+
+A substantial body of research has explored the prediction of tennis match outcomes using statistical models, highlighting the importance of player attributes and match statistics. Early studies, such as those by Newton and Keller (2005)\[2\], O'Malley (2008)\[3\], and Riddle (1988)\[4\], demonstrate that under the assumption of independent and identically distributed (iid) point outcomes on a player's serve, the probability of winning a match can be derived from the probabilities of winning points on serve.
+
+Kovalchik (2016) \[5\] conducted a comparison of 11 published tennis prediction models, categorizing them into three classes: point-based models relying on the iid assumption, regression-based models, and paired comparison models. The study found that while point-based models had lower accuracy and higher log loss, regression and paired comparison models generally outperformed them.
+
+## Methods
+
+### Data and preprocessing
+
+The dataset utilized in this study is the Tennis ATP Dataset curated by Jeff Sackmann (Sackmann, 2021) \[1\]. This dataset serves as a comprehensive repository of professional tennis data, encompassing a wide range of player information, historical rankings, match outcomes, and statistical metrics. Specifically, it includes a player file containing detailed biographical data, such as unique player identifiers, names, handedness, birth dates, nationalities, and physical attributes like height. Additionally, ranking files provide a historical record of ATP rankings over time, while the results file covers match outcomes across tour-level, challenger, and futures events. This dataset forms a robust foundation for exploring various aspects of professional tennis performance and trends.
+
+The dataset selected includes ATP match data from 2014-2024, the subset chosen are challenger matches and professional and tournament class A such as Davis Cup, Roland Garros and others. The records from this period consist in 116,103 matches where each match has 49 variables.
+
+The initial collection of data contains features at the match level, therefore it has information from the winner player and the loser player. In order to analyze the effect of match win this structured has been modified to portray the results at the player level, including both win and loss outcomes.
+
+In order to improve the quality of the data, those players that do not have a rank and rank points have been set to zero as the data dictionary explains that unranked players are new to these tournaments. To handle missing values in height, an imputation technique is used where player height is estimated using the average of the country of birth of the player.
+
+Furthermore, rows where the number of aces played is missing have been removed as this is key information in our research questionanalyzing that matches whose number of aces for the winner nor the loser are missing lack all the statistical information from the the other aspects of the match therefore those records have been filtered. The same rationale applies to the serving games as it signals records that have missing information overall therefore those records have been filtered out from the analysis data.
+
+Lastly, for highly correlated information, ratios have been computed to continue to capture granularity in information, but also reduce the number of variables needed in any model, minimizing multicollinearity.
+
+On the other hand to assess the effect of factors on the match length, missing values in the dataset were adrressed to prepare for further analysis. Group-wise imputation was performed based on the surface type: missing player heights were replaced with the average height for that surface, and missing match durations were replaced with the median duration for that surface. This approach ensured that missing data was filled in a way that preserved context and prepared the dataset for modeling.
+
+Moreover, the difference in the number of aces, rankings, and ranking points between the winner and loser was calculated. These perfomance metrics aim to provide more tangible and interpretable predictors for the model by focusing on measurable aspects of the players performance. Grouping variables into performance metrics also helps to frame the analysis in a way that aligns with the context of the sport and makes the regressors more meaningful and insightful.
+
+Finally, rows with missing values for match duration (our target variable) were removed since only 8% of the data was affected. This approach is acceptable because the missing proportion is relatively small, and our target variable needs to be complete for modeling purposes.
+
+### Variable selection
+
+Taking as reference previous research regarding the most relevant features involved in the outcome of a tennis match (Newton et al., 2005\[1\]; O'Malley 2008\[2\]; Kovalchik, 2016) a pre selection was made observing the limitation of the available data. In order to further refine the process of feature selection exploratory data analysis was conducted using correlation plots, box plots and scatterplots.
+
+### Modeling and evaluation
+The present study focuses on the effects of the duration of a match using linear regression to evaluate inference capabilities and determining the principal factors for a match win using logistic regression to evaluate the probability of a win. Variance Inflation Factor (VIF) was used to test multi-colinearity. For the linear regression task the assumptions for the model are tested via residual vs fitted plots and normal q-q plots, furthermore, the performance of the model is evaluated using the adjusted r squared metric. In terms of logistic regression, accuracy, recall sensitivity and specificity are used to evaluate the model. Lasso Regularization is implemented to prevent overfitting of the model due to too many variables. The AIC score is also used to evaluate the model, incorporating the number of predictors into the overall score. 
+
+## Results
+
+```{r load-packages, message = FALSE, warning = FALSE, echo = FALSE}
+library(tidyverse)
+library(dplyr)
+library(tidyverse)
+library(Hmisc)
+library(cowplot)
+library(corrplot)
+library(ggplot2)
+library(modelsummary)
+library(car)
+library(knitr)
+library(conflicted)
+library(glmnet)
+conflict_prefer("filter", "dplyr")
+```
+
+```{r data-1, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+# Define the base URL for each type of match data
+base_urls <- list(
+  qualy_chall = "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_matches_qual_chall_",
+  #futures = "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_matches_futures_",
+  match = "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_matches_"
+)
+
+# Get the current year and create a sequence for the last 5 years
+years <- (as.numeric(format(Sys.Date(), "%Y")) - 10):as.numeric(format(Sys.Date(), "%Y"))
+
+# Create a function to download and combine data for all years and match types
+download_data <- function(base_url, years) {
+  data_list <- lapply(years, function(year) {
+    url <- paste0(base_url, year, ".csv")
+    tryCatch(
+      read.csv(url),
+      error = function(e) {
+        message("Failed to download: ", url)
+        NULL
+      }
+    )
+  })
+  # Combine all years into a single data frame
+  do.call(rbind, data_list)
+}
+
+# Download and combine data for each match type
+tennis_qualy_chall <- download_data(base_urls$qualy_chall, years)
+#tennis_futures <- download_data(base_urls$futures, years)
+tennis_match <- download_data(base_urls$match, years)
+
+# Define a function to standardize column types
+standardize_columns <- function(df) {
+  df %>%
+    mutate(
+      tourney_level = as.character(tourney_level),
+      winner_seed = as.character(winner_seed),
+      loser_seed = as.character(loser_seed)
+      ) 
+}
+
+# Apply the function to each dataset
+tennis_qualy_chall <- standardize_columns(tennis_qualy_chall)
+tennis_match <- standardize_columns(tennis_match)
+
+# Combine all datasets
+tennis <- bind_rows(tennis_qualy_chall,tennis_match) #tennis_futures,
+
+# View the combined dataset
+head(tennis)
+dim(tennis)
+sum(is.na(tennis$minutes))
+tennis %>%
+  filter(is.na(winner_rank))
+```
+
+```{r , message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+# Create a long-format dataset for both winners and losers
+tennis_long <- tennis %>%
+  filter(!is.na(minutes) & !is.na(winner_rank) & !is.na(loser_rank))%>%
+  mutate(
+    win = 1,
+    player_id = winner_id,
+    player_name = winner_name,
+    player_seed = winner_seed,
+    player_entry = winner_entry,
+    player_hand = winner_hand,
+    player_ht = winner_ht,
+    player_ioc = winner_ioc,
+    player_age = winner_age,
+    aces = w_ace,
+    df = w_df,
+    svpt = w_svpt,
+    first_in = w_1stIn,
+    first_won = w_1stWon,
+    second_won = w_2ndWon,
+    svgms = w_SvGms,
+    bp_saved = w_bpSaved,
+    bp_faced = w_bpFaced,
+    rank = winner_rank,
+    rank_points = winner_rank_points,
+    score = score,
+    tourney_id = tourney_id,
+    tourney_name = tourney_name,
+    surface = surface,
+    draw_size = draw_size,
+    tourney_level = tourney_level,
+    tourney_date = tourney_date,
+    match_num = match_num
+  ) %>%
+  select(
+    tourney_id, tourney_name, surface, draw_size, tourney_level, tourney_date,
+    match_num, player_id, player_seed, player_entry, player_name, player_hand,
+    player_ht, player_ioc, player_age, score, rank, rank_points, aces, df, svpt,
+    first_in, first_won, second_won, svgms, bp_saved, bp_faced, win
+  ) %>%
+  bind_rows(
+    # Create rows for the loser
+    tennis %>%
+      mutate(
+        win = 0,
+        player_id = loser_id,
+        player_name = loser_name,
+        player_seed = loser_seed,
+        player_entry = loser_entry,
+        player_hand = loser_hand,
+        player_ht = loser_ht,
+        player_ioc = loser_ioc,
+        player_age = loser_age,
+        aces = l_ace,
+        df = l_df,
+        svpt = l_svpt,
+        first_in = l_1stIn,
+        first_won = l_1stWon,
+        second_won = l_2ndWon,
+        svgms = l_SvGms,
+        bp_saved = l_bpSaved,
+        bp_faced = l_bpFaced,
+        rank = loser_rank,
+        rank_points = loser_rank_points,
+        score = score,
+        tourney_id = tourney_id,
+        tourney_name = tourney_name,
+        surface = surface,
+        draw_size = draw_size,
+        tourney_level = tourney_level,
+        tourney_date = tourney_date,
+        match_num = match_num
+      ) %>%
+      select(
+        tourney_id, tourney_name, surface, draw_size, tourney_level, tourney_date,
+        match_num, player_id, player_seed, player_entry, player_name, player_hand,
+        player_ht, player_ioc, player_age, score, rank, rank_points, aces, df, svpt,
+        first_in, first_won, second_won, svgms, bp_saved, bp_faced, win
+      )
+  )
+
+# Create new columns for year, month, and day
+tennis_long <- tennis_long %>%
+  mutate(
+    match_year = substr(tourney_date, 1, 4),       # Extract the first 4 characters as the year
+    match_month = substr(tourney_date, 5, 6)     # Extract the 5th and 6th characters as the month
+)
+
+tennis_long <- tennis_long %>%
+  rename(
+    player_height = player_ht,
+    double_faults = df,
+    player_country = player_ioc,
+    serve_points = svpt,
+    first_serves=first_in,
+    first_serves_points_won=first_won,
+    second_serves_points_won=second_won,
+    serve_games=svgms,
+    break_points_saved=bp_saved,
+    break_points_faced=bp_faced
+  )
+
+# Convert Win to a factor with appropriate labels
+tennis_long <- tennis_long |>
+  mutate(
+    win = factor(win, levels = c(0, 1), labels = c("Loss", "Win")),
+    rank = if_else(is.na(rank), 0, rank),
+    rank_points = if_else(is.na(rank_points), 0, rank_points)
+  )
+tennis_long <- tennis_long %>%
+  group_by(player_country) %>%
+  mutate(
+    player_height = if_else(is.na(player_height), 
+                            mean(player_height, na.rm = TRUE), 
+                            player_height)
+  ) %>%
+  ungroup()
+
+tennis_long <- tennis_long |>
+  mutate(
+    player_height = if_else(is.na(player_height), mean(player_height, na.rm = TRUE), player_height)
+  )
+
+tennis_long <- tennis_long %>%
+  filter(!is.na(aces) & !is.na(player_age) & !is.na(serve_games))
+ 
+# Get the number of NAs in each column
+#na_count <- sapply(tennis_long, function(x) sum(is.na(x)))
+# Display the result
+#na_count
+#dim(tennis_long)
+#tennis_long %>% 
+#202
+```
+
+### Overview of key variables of interest
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+tennis_long %>%
+  group_by(win) %>%
+  dplyr::summarize(count = n())
+
+tennis %>%
+  group_by(surface) %>%
+  dplyr::summarize(count = n(), proportion = n()/116050)
+
+```
+The dataset has a fairly even distribution of players that Win (101746) and Lose (111621), implying that there would not be more information gain in one outcome over the other. The surface types do not have as balanced of a distribution. Majority of the matches are played on a Hard or Clay surface, accounting for 53.5% and 41.1% of the matches. About 5% of the matches are played on Grass and only 0.2% on Carpet.
+Below we consider the distribution of the key continuous variables:
+
+```{r warning=FALSE, echo=FALSE}
+summary_table <- data.frame(
+  Variable = c("minutes", "rank", "aces"),
+  Minimum = c(min(tennis$minutes, na.rm = TRUE), min(tennis_long$rank, na.rm = TRUE), min(tennis_long$aces, na.rm = TRUE)),
+  `Quantile 1` = c(quantile(tennis$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
+  Mean = c(mean(tennis$minutes, na.rm = TRUE), mean(tennis_long$rank, na.rm = TRUE), mean(tennis_long$aces, na.rm = TRUE)),
+  Median = c(median(tennis$minutes, na.rm = TRUE), median(tennis_long$rank, na.rm = TRUE), median(tennis_long$aces, na.rm = TRUE)),
+  `Quantile 3` = c(quantile(tennis$minutes, 0.75, na.rm = TRUE), quantile(tennis_long$rank, 0.75, na.rm = TRUE), quantile(tennis_long$aces, 0.75, na.rm = TRUE)),
+  Maximum = c(max(tennis$minutes, na.rm = TRUE), max(tennis_long$rank, na.rm = TRUE), max(tennis_long$aces, na.rm = TRUE))
+)
+
+kable(summary_table, caption = "Summary Statistics for Variables")
+```
+
+
+### **Research question 1: Effects of the difference in ranking over the length in minutes for a tennis match**
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
+# Count the number of NAs in each column
+missing_summary <- tennis  %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+missing_summary
+
+# Summary statistics of the variables
+summary(tennis)
+
+# Creating new binary indicators
+tennis <- tennis %>%
+  mutate(
+    winner_seeded = ifelse(is.na(winner_seed), 0, 1),
+    loser_seeded = ifelse(is.na(loser_seed), 0, 1)
+  )
+
+# Group-wise imputation: ensure that replacements respect the context of the surface variable
+tennis <- tennis %>%
+  group_by(surface) %>%
+  mutate(
+    winner_ht = ifelse(is.na(winner_ht), mean(winner_ht, na.rm = TRUE), winner_ht),
+    loser_ht = ifelse(is.na(loser_ht), mean(loser_ht, na.rm = TRUE), loser_ht),
+    minutes = ifelse(is.na(minutes), median(minutes, na.rm = TRUE), minutes)
+  ) %>%
+  ungroup()
+
+# Drop the missing values in our target variable
+tennis <- tennis %>% filter(!is.na(minutes))
+
+# Calculate the percentage of missing values in rank_diff
+percent_missing_minutes<- sum(is.na(tennis$minutes)) / nrow(tennis) * 100
+# Print the result
+print(percent_missing_minutes)
+
+# Player Performance Metrics: Create performance difference metrics (e.g., difference in aces, rank, and rank points):
+tennis <- tennis %>%
+  mutate(
+    diff_aces = w_ace - l_ace,
+    diff_rank = loser_rank - winner_rank,
+    diff_rank_points = loser_rank_points - winner_rank_points
+  )
+
+# Categorical Variables: Convert categorical variables like surface and tourney_level to factors:
+tennis <- tennis %>%
+  mutate(
+    surface = as.factor(surface),
+    tourney_level = as.factor(tourney_level)
+  )
+# Cap or remove extreme values in minutes, winner_ht, and loser_ht:
+tennis <- tennis %>%
+  mutate(
+    minutes = ifelse(minutes > 300, 300, minutes),
+    winner_ht = ifelse(winner_ht > 210, 210, winner_ht),
+    loser_ht = ifelse(loser_ht > 210, 210, loser_ht)
+  )
+```
+
+> Below is the linear regression analyzing the relationshiop between minutes, surface and ranking differences amongst players
+
+$$
+minutes = β0 +β1⋅(difference) + β2⋅surface + β3(difference*surface) + ϵ
+$$
+
+```{r, message = FALSE, warning=FALSE, echo=FALSE}
+# First linear regression with only difference in rankings and surface
+model_linear_1 <- lm(minutes ~ diff_rank * surface, data = tennis)
+summary(model_linear_1)
+```
+
+Initially, the goal was to explore the relationship between match duration (minutes) and a limited set of predictors, specifically the difference in rankings and the interaction with surface type. However, the adjusted R² of the initial model was quite low (R² = 0.02), indicating that the predictors explained only a small fraction of the variation in match duration. This suggests that there are likely other important factors influencing the outcome that were not accounted for in the model.
+
+To address this limitation, a second approach was taken to include additional variables in the model, particularly player performance metrics and other contextual factors. The rationale was that these additional predictors might capture more of the complexity and variability inherent in match durations, thereby improving the model's explanatory power and increasing the adjusted R². This step aims to make the model more robust and reflective of the factors that influence match duration.
+
+> Below is the diagnostic plot for the first linear model.
+
+```{r, fig.width=9, fig.height=10}
+par(mfrow = c(2,2))
+plots <- plot(model_linear_1)
+```
+
+The residual diagnostics reveal some violations of the linear regression assumptions, albeit less severe compared to the second model. The "Residuals vs Fitted" plot still shows signs of non-linearity, indicating the model may not adequately capture all patterns in the data. The "Q-Q Residuals" plot suggests moderate deviations from normality, particularly in the tails, which could affect hypothesis testing but to a lesser extent than the expanded model. The "Scale-Location" plot exhibits slight heteroscedasticity, where the variance of residuals increases with fitted values, suggesting the model's predictions may not be equally reliable across all ranges. These issues indicate that while the model may be simpler, its assumptions are not entirely satisfied, and its reliability could still be questioned despite fewer violations (compared to the 2nd model, see below).
+
+> Below is the linear regression analyzing the relationshiop between minutes and a multitude of regressors
+
+The second regression model was designed to address the low explanatory power of the initial model, which had a low adjusted R². By incorporating additional predictors such as player performance metrics, tournament levels, and specific match characteristics, the aim was to better capture the complexity of factors affecting match duration (minutes). This approach improved the adjusted R² = 0.57, suggesting that these added variables account for more of the variance in the response variable. The model also includes an interaction term and accounts for more detailed match-level attributes, providing a more comprehensive view of the factors influencing match length.
+
+Some variables that significantly impact match duration (minutes) include the difference in rank between players, which shows a strong negative association, indicating that matches with greater rank disparity are shorter. The number of breakpoints saved by the winner has a significant positive effect, suggesting that matches where the winner saves more breakpoints tend to last longer. Lastly, the difference in aces between players negatively affects match duration, with matches showing a greater disparity in aces being resolved more quickly. These variables emphasize the importance of player performance and competitive dynamics in determining match length.
+
+
+```{r, message = FALSE, warning=FALSE, echo=FALSE}
+# Second linear regression containg more variables
+# Example Target: minutes (match duration).
+set.seed(123)
+train_index <- sample(1:nrow(tennis), 0.8 * nrow(tennis))
+train <- tennis[train_index, ]
+test <- tennis[-train_index, ]
+model_linear_2 <- lm(minutes ~ diff_rank + diff_aces + winner_ht + loser_ht + surface + 
+            tourney_level + winner_age + loser_age + w_df + l_df + 
+            w_bpSaved + l_bpSaved + w_bpFaced + l_bpFaced, data = train)
+summary(model_linear_2)
+
+predictions <- predict(model_linear_2, test)
+mean_squared_error <- mean((test$minutes - predictions)^2)
+#print(mean_squared_error)
+
+```
+
+> Below is the diagnostic plot for the second linear model. 
+
+```{r, fig.width=9, fig.height=10}
+par(mfrow = c(2,2))
+plots <- plot(model_linear_2)
+```
+
+Despite achieving a higher adjusted R² compared to the first model, several key assumptions of the linear regression model appear to be violated. The "Residuals vs Fitted" plot indicates potential non-linearity in the relationships between predictors and the response variable, suggesting the model may not be capturing all relevant patterns. The "Q-Q Residuals" plot shows significant deviations from normality, particularly in the tails, which could compromise the reliability of hypothesis tests and confidence intervals. Additionally, the "Scale-Location" plot reveals heteroscedasticity, with residuals showing increasing variance as fitted values grow. While the larger R²suggests the model explains more variance in match duration, these assumption violations indicate that the results may not be entirely valid or interpretable under the linear regression framework, reducing the model's overall reliability. These violations suggest that the model might require transformations, interaction terms, or alternative regression methods to better satisfy these assumptions.
