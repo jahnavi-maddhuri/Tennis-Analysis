@@ -305,9 +305,9 @@ tennis %>%
   dplyr::summarize(count = n(), proportion = n()/116050)
 
 ```
-The dataset has a fairly even distribution of players that Win (101746) and Lose (111621), implying that there would not be more information gain in one outcome over the other. The surface types do not have as balanced of a distribution. Majority of the matches are played on a Hard or Clay surface, accounting for 53.5% and 41.1% of the matches. About 5% of the matches are played on Grass and only 0.2% on Carpet. Below it is considered the distribution of the key continuous variables.
 
-# Pending
+The dataset shows a fairly balanced distribution of players who win (101,746) versus those who lose (111,621), indicating minimal information gain from either outcome. Regarding surface types, most matches are played on Hard (53.5%) or Clay (41.1%) courts, with Grass accounting for 5% and Carpet only 0.2%. The distribution of key continuous variables is examined below. Missing values are present in 9% of the minutes variable and 2% of the aces variable, primarily corresponding to canceled or rescheduled matches.
+
 
 ```{r, warning=FALSE, echo=FALSE}
 summary_table <- data.frame(
@@ -322,8 +322,6 @@ summary_table <- data.frame(
 
 kable(summary_table, caption = "Summary Statistics for Variables")
 ```
-# Pending
-
 
 ### **Research question 1: Effects of the difference in ranking over the length in minutes for a tennis match**
 
@@ -395,25 +393,16 @@ tennis.imp <- mice(tennis.sub, m=5, method="pmm", print=FALSE, seed = 123)
 tennis.comp <- complete(tennis.imp, "long", include=TRUE) #stack the imputed values into one variable and include he observed values
 tennis.comp$winner_ht.comp <- cci(tennis$winner_ht) #create an indicator for completeness
 
-ggplot(tennis.comp, aes(x=factor(.imp), y=winner_ht, fill=winner_ht.comp))+
-  geom_boxplot()
+#ggplot(tennis.comp, aes(x=factor(.imp), y=winner_ht, fill=winner_ht.comp))+
+#  geom_boxplot()
 ```
 
 
-Match duration in tennis is influenced by a variety of factors, including tournament level, player performance, court surface, and physical characteristics.
-The type of tournament significantly affects match duration, with a clear trend emerging when comparing lower and higher levels to the baseline (level A). Matches at level D (Beginner) and level C (Intermediate) tend to be shorter, with level C showing a 3.1% decrease in duration compared to level A (95% CI: -3.7%, -2.5%, p < 0.001). This indicates that lower-level tournaments are associated with shorter match durations. However, as tournament levels rise above C, match duration increases significantly. For instance, matches at level G extend by 21.9% (95% CI: 20.9%, 22.8%, p < 0.001).
+Match duration in tennis is influenced by a variety of factors, including tournament level, player performance, court surface, and physical characteristics. The type of tournament significantly affects match duration, with a clear trend emerging when comparing lower and higher levels to the baseline (level A). Matches at level D (Beginner) and level C (Intermediate) tend to be shorter, with level C showing a 3.1% decrease in duration compared to level A (95% CI: -3.7%, -2.5%, p < 0.001). This indicates that lower-level tournaments are associated with shorter match durations. However, as tournament levels rise above C, match duration increases significantly. For instance, matches at level G extend by 21.9% (95% CI: 20.9%, 22.8%, p < 0.001).
 
-Differences in player performance, such as aces, also influence match duration. For every additional ace difference between players, match duration increases by 1% (95% CI: 0.9%, 1.1%, p < 0.001). This indicates that strong serving performances often lead to prolonged matches, as players must engage in more games and sets.
+Differences in player performance, such as aces, also influence match duration. For every additional ace difference between players, match duration increases by 1% (95% CI: 0.9%, 1.1%, p < 0.001). This indicates that strong serving performances often lead to prolonged matches, as players must engage in more games and sets. Our study also highlights how service errors extend gameplay, likely due to increased rally lengths or additional points. Each additional double fault by the winner increases match length by approximately 5.1% (95% CI: 5.0%, 5.2%, p < 0.001).
 
-Our study also highlights how service errors extend gameplay, likely due to increased rally lengths or additional points. Each additional double fault by the winner increases match length by approximately 5.1% (95% CI: 5.0%, 5.2%, p < 0.001).
-
-Furthermore, the ratio of breakpoints saved by players shows contrasting effects. Winners who save more breakpoints reduce match duration by 12.6% (95% CI: -13.3%, -11.9%, p < 0.001), likely due to their ability to close out critical points effectively. On the other hand, losers who save more breakpoints increase match length by 48.1% (95% CI: 47.2%, 49.1%, p < 0.001). This demonstrates how defensive efforts by losers prolong gameplay, as they manage to stave off losing points but fail to secure victory.
-
-Also, the court surface plays a pivotal role in match duration. Matches on clay courts last significantly longer, with durations increasing by 14% (95% CI: 10.1%, 17.8%, p < 0.001). However other types of surfaces have shown no significant impact on length of the match.
-
-Finally, the heights of both winners and losers contribute to match duration. For each additional unit of height for the winner, match duration increases by 0.3% (95% CI: 0.2%, 0.3%, p < 0.001). Conversely, loser height has a smaller negative impact, decreasing match duration by 0.1% (95% CI: -0.1%, -0.06%, p = 0.006). This suggests that taller winners may leverage their physical advantage for strategic play, while loser height appears to have a negligible effect on reducing match duration.
-
-The model achieved an R-squared of 0.31.
+Furthermore, the ratio of breakpoints saved by players shows contrasting effects. Winners who save more breakpoints reduce match duration by 12.6% (95% CI: -13.3%, -11.9%, p < 0.001), likely due to their ability to close out critical points effectively. On the other hand, losers who save more breakpoints increase match length by 48.1% (95% CI: 47.2%, 49.1%, p < 0.001). This demonstrates how defensive efforts by losers prolong gameplay, as they manage to stave off losing points but fail to secure victory. The court surface plays a pivotal role in match duration. Matches on clay courts last significantly longer, with duration increasing by 14% (95% CI: 10.1%, 17.8%, p < 0.001). However other types of surfaces have shown no significant impact on length of the match. The overall model adjusted R-squared is 0.31.
 
 ```{r, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # try with log transformed minutes
@@ -427,7 +416,7 @@ summary(pool(imp.log_mods))
 ```
 
 
-```{r, warning=FALSE, echo=FALSE, include=FALSE}
+```{r, warning=FALSE, echo=FALSE}
 library(dplyr)
 library(broom)
 library(knitr)
@@ -439,27 +428,34 @@ tidy_model <- broom::tidy(pool(imp.log_mods))
 z_value <- 1.96  # For 95% CI
 
 formatted_results <- tidy_model %>%
+  filter(term != "(Intercept)") %>%  # Exclude the intercept
   mutate(
     Lower_CI = estimate - z_value * std.error,
-    Upper_CI = estimate + z_value * std.error
+    Upper_CI = estimate + z_value * std.error,
+    `95% CI` = paste0(round(Lower_CI, 2), ", ", round(Upper_CI, 2))  # Combine CI
   ) %>%
-  dplyr::select(term, estimate, std.error, Lower_CI, Upper_CI, p.value) %>%
+  dplyr::select(term, estimate, std.error, `95% CI`, p.value) %>%
   rename(
     Predictors = term,
     Coefficient = estimate,
     `Standard Error` = std.error,
-    `95% CI Lower` = Lower_CI,
-    `95% CI Upper` = Upper_CI,
     `P-Value` = p.value
   )
 
+# Exclude the intercept row
+#formatted_results <- formatted_results[formatted_results$term != "(Intercept)", ]
 # Display the table with kable
 formatted_results %>%
+  mutate(
+    Coefficient = round(Coefficient, 2),
+    `Standard Error` = round(`Standard Error`, 2),
+    `P-Value` = round(`P-Value`, 2)
+  ) %>%
   knitr::kable(
-    caption = "Linear Regression Model Results with Manually Computed Confidence Intervals",
-    digits = 3,
-    align = "c",
-    format = "markdown"
+    caption = "Linear Regression Model Results",
+    digits = 2,
+    format = "markdown",
+    align = c("l", "r", "r", "r", "r") #, "r"
   )
 ```
 
@@ -532,13 +528,9 @@ vif_values <- vif(vif_model)
 print(vif_values)
 ```
 
-```{r, warning=FALSE, echo=FALSE, message=False}
-# Scatterplot between diff_rank and minutes, separated by tourney_level
-
-library(mice)
-
+```{r, warning=FALSE, echo=FALSE}
 # Extract completed data frame from mice object
-tennis_imp_df <- complete(tennis.imp)  # Choose the first imputed dataset
+tennis_imp_df <- complete(tennis.imp, 1)  # Choose the first imputed dataset
 
 # Plot with the extracted data
 ggplot(tennis_imp_df, aes(x = diff_rank, y = minutes, color = tourney_level)) +
@@ -662,10 +654,6 @@ y <- tennis_long_clean$win
 Mentioned in the methodology section of this document, a multiple imputation technique with the mice package was applied to handle non systematic missing data correspondent to the variable height. Presented below is a summary of the final logistic regression model.
 
 ```{r, message = FALSE, warning=FALSE, echo=FALSE}
-#inputation
-library(mice)
-library(sjlabelled)
-library(tidyverse)
 
 # Load necessary libraries
 library(mice)
@@ -707,30 +695,41 @@ lower_ci <- exp(coefficients - 1.96 * std_errors)  # Lower bound of 95% CI
 upper_ci <- exp(coefficients + 1.96 * std_errors)  # Upper bound of 95% CI
 p_values <- coef_summary$p.value
 
-# Combine confidence intervals into a single column and add the standard error
+# Combine coefficients, standard errors, and split confidence intervals into separate columns
 coeff_df <- data.frame(
   term = coef_summary$term,
   coefficient = round(coefficients, 2),
   std_error = round(std_errors, 2),  # Add standard error
   exp_coefficient = round(exp_coefficients, 2),
-  ci = paste0(" (", round(lower_ci, 2), ", ", round(upper_ci, 2), ")"),  # Combine CI into one column
+  #lower_ci = round(lower_ci, 2),  # Separate lower CI
+  #upper_ci = round(upper_ci, 2),  # Separate upper CI
+  ci = paste0(round(lower_ci, 2), ",", round(upper_ci, 2)),  # Combine CI into one column
   p_value = round(p_values, 2),
   stringsAsFactors = FALSE
 )
+# Exclude the intercept row
+coeff_df <- coeff_df[coeff_df$term != "(Intercept)", ]
 
 # Rename columns for clarity
-colnames(coeff_df) <- c("Variable", "Coefficient","Standard Error", "Odds Ratio", "95% CI", "P-value")
+colnames(coeff_df) <- c("Variable", "Coefficient", "Standard Error", "Odds Ratio", "95% CI", "P-value") #"Upper 95% CI",
 
 # Create the table and align all columns to the right
-kable(coeff_df, caption = "Logistic Regression Coefficients, Odds Ratios, Confidence Intervals, Standard Errors, and P-values", 
-      align = c("l", "r", "r", "r", "r", "r")) %>%  # Align first column to the left and others to the right
+merged_table <- kable(
+  coeff_df,
+  caption = "Logistic Regression Coefficients, Odds Ratios, Confidence Intervals, Standard Errors, and P-values",
+  align = c("l", "r", "r", "r", "r", "r"), #, "r"
+  escape = TRUE  # Escape LaTeX-sensitive characters
+) %>%
   kable_styling(full_width = FALSE)
+
+merged_table
+
 
 ```
 
-Analyzing the variables of interest aces and surface, we have an effect of 1.12 times increase in odds of winning for every extra ace point when the match is disputed on a clay surface, with a combined confidence interval between 1.03 and 1.19, considering that the variable aces is statistically significant while the interation terms are not. Similarly, for matches played on Grass the model has a combined effect increasing the odds of winning by 1.08 times. The impact of every extra ace point while playing on hard surfaces represent a combine effect of 1.09 increse in the odds of winning the match. Another statistically significant variable impacting the odds of winning is the right vs left-handed stature of the player. Specifically being Right or Left Handed (as opposed to ambidextrous) is associated with approximately 1.35 times increase in odds of winning. Furthermore, the break point serve ration explains an effect of 1.03 times the increase in odds of winning.
+Analyzing the variables of interest aces and surface, we have an effect of 1.12 times increase in odds of winning for every extra ace point when the match is disputed on a clay surface, with a combined confidence interval between 1.03 and 1.19, considering that the variable aces is statistically significant while the interation terms are not. Similarly, for matches played on Grass the model has a combined effect increasing the odds of winning by 1.08 times. The impact of every extra ace point while playing on hard surfaces represent a combine effect of 1.09 increse in the odds of winning the match. Another statistically significant variable impacting the odds of winning is the right vs left-handed stature of the player. Specifically being Right or Left Handed (as opposed to ambidextrous) is associated with approximately 1.37 times and 1.36 times increase in odds of winning respectevely. Additionally, is it observed that for every extra unit in draw size the odd are 1.1 times an increase in the odds of winning. Furthermore, the break point serve ration explains an effect of 1.03 times the increase in odds of winning.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE,fig.width=5,fig.height=3}
 
 # Load necessary libraries
 library(mice)
@@ -767,8 +766,8 @@ auc_value <- auc(roc_curve)
 auc_text <- paste("AUC:", round(auc_value, 2))
 
 ggplot(roc_data, aes(x = FPR, y = TPR)) +
-  geom_line(color = "blue", size = 1) +
-  geom_abline(linetype = "dashed", color = "red") +
+  geom_line(color = "#006400", size = 1) +
+  geom_abline(linetype = "dashed", color = "green") +
   annotate("text", x = 0.6, y = 0.2, label = auc_text, size = 5, color = "black") +
   labs(title = "ROC Curve", x = "False Positive Rate", y = "True Positive Rate") +
   theme_minimal()
@@ -777,52 +776,67 @@ ggplot(roc_data, aes(x = FPR, y = TPR)) +
 
 
 ```{r, message = FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
-# Load necessary libraries
-# library(caret)    # For confusionMatrix
-# library(knitr)    # For kable
-# library(kableExtra)
-# # Generate predictions
-# pred_probs <- predict(pool(imp.mods_long), type = "response")
-# pred_binary <- ifelse(pred_probs > 0.5, 1, 0)
-# pred_binary <- factor(pred_binary, levels = c(0, 1), labels = c("Loss", "Win"))
-# 
-# # Create a confusion matrix
-# conf_matrix <- confusionMatrix(pred_binary, tennis_long_clean$win)
-# 
-# conf_matrix_table <- conf_matrix$table
-# conf_matrix_df <- as.data.frame.matrix(conf_matrix_table)
-# #conf_matrix_df <- cbind(Actual = rownames(conf_matrix_df), conf_matrix_df)
-# conf_matrix_latex <- conf_matrix_df %>%
-#   kable("latex", booktabs = TRUE, 
-#         caption = "Confusion Matrix: Actual vs. Predicted Satisfaction",
-#         align = "c") %>%
-#   kable_styling(latex_options = c("striped", "hold_position"))
-# 
-# # Extract and prepare the metrics for display
-# metrics <- data.frame(
-#   Metric = c("Accuracy", "Precision", "Recall", "F1 Score", "Specificity", "Sensitivity", "Positive Predictive Value", "Negative Predictive Value"),
-#   Value = c(
-#     conf_matrix$overall['Accuracy'],
-#     conf_matrix$byClass['Pos Pred Value'],
-#     conf_matrix$byClass['Sensitivity'],
-#     conf_matrix$byClass['F1'],
-#     conf_matrix$byClass['Specificity'],
-#     conf_matrix$byClass['Sensitivity'],
-#     conf_matrix$byClass['Pos Pred Value'],
-#     conf_matrix$byClass['Neg Pred Value']
-#   )
-# )
-# 
-# # Display the metrics using kable
-# #cat("\nMetrics:\n")
-# kable(metrics, format = "markdown", col.names = c("Metric", "Value"))
+library(caret)    # For confusionMatrix
+library(knitr)    # For kable
+library(kableExtra)
+# Generate predictions
+# Generate predictions for each imputed dataset
+pred_probs <- complete(tennis_long.imp, "all") %>%
+  lapply(function(data) {
+    glm_model <- glm(win ~ draw_size + player_hand + player_height + player_age + 
+                       rank + rank_points + aces * surface + double_faults + break_pt_save_ratio,
+                     family = "binomial", data = data)
+    predict(glm_model, newdata = data, type = "response")
+  })
+
+# Aggregate predictions by averaging across imputations
+mean_pred_probs <- Reduce("+", pred_probs) / length(pred_probs)
+
+pred_binary <- ifelse(mean_pred_probs > 0.5, 1, 0)
+pred_binary <- factor(pred_binary, levels = c(0, 1), labels = c("Loss", "Win"))
+
+# Create a confusion matrix
+conf_matrix <- confusionMatrix(pred_binary, tennis_long_clean$win)
+
+conf_matrix_table <- conf_matrix$table
+conf_matrix_df <- as.data.frame.matrix(conf_matrix_table)
+#conf_matrix_df <- cbind(Actual = rownames(conf_matrix_df), conf_matrix_df)
+conf_matrix_latex <- conf_matrix_df %>%
+  kable("latex", booktabs = TRUE,
+        caption = "Confusion Matrix: Actual vs. Predicted Satisfaction",
+        align = "c") %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+
+# Extract and prepare the metrics for display
+metrics <- data.frame(
+  Metric = c("Accuracy", "Precision", "Recall", "F1 Score", "Specificity", "Sensitivity", "Positive Predictive Value", "Negative Predictive Value"),
+  Value = c(
+    conf_matrix$overall['Accuracy'],
+    conf_matrix$byClass['Pos Pred Value'],
+    conf_matrix$byClass['Sensitivity'],
+    conf_matrix$byClass['F1'],
+    conf_matrix$byClass['Specificity'],
+    conf_matrix$byClass['Sensitivity'],
+    conf_matrix$byClass['Pos Pred Value'],
+    conf_matrix$byClass['Neg Pred Value']
+  )
+)
+
+# Display the metrics using kable
+#metrics
+#cat("\nMetrics:\n")
+#kable(metrics, format = "markdown", col.names = c("Metric", "Value"))
 ```
 
-The performance of the logistic regression model was evaluated using standard classification metrics, including accuracy, precision, recall, and F1 score. The model achieved an accuracy of 0.8117, indicating that approximately 81.17% of predictions matched the true outcomes. The precision of the model was 0.8230, reflecting its ability to correctly identify positive cases while minimizing false positives. The recall was measured at 0.8155, demonstrating the model's capability to correctly identify a high proportion of actual positive cases. Finally, the F1 score, a harmonic mean of precision and recall, was calculated to be 0.8192, indicating a balanced performance between these two metrics. Together, these results suggest the model performs reliably in predicting match outcomes based on the given features.
-```{r message = FALSE, warning=FALSE, echo=FALSE}
+The performance of the logistic regression model was evaluated using standard classification metrics. The model achieved an accuracy of 0.68. The precision of the model was 0.68, reflecting its ability to correctly identify positive cases while minimizing false positives. The recall was measured at 0.70, demonstrating the model's capability to correctly identify a high proportion of actual positive cases. Finally, the F1 score, a harmonic mean of precision and recall, was calculated to be 0.8192, indicating a balanced performance between these two metrics. Together, these results suggest the model performs reliably in predicting match outcomes based on the given features.
+
+Finally, shown below, a plot showing the average of aces achieved in a game is slightly higher in respect to the average of aces by Losers. This supports the model estimates and the slight increase in odds of winning (by 1.1 times) for every additional ace played.
+
+```{r, message = FALSE, warning=FALSE, echo=FALSE,fig.width=5,fig.height=3}
+# Create the boxplot with a green gradient color scale
 ggplot(tennis_long_clean, aes(x = win, y = aces, fill = surface)) +
   geom_boxplot() +
-  scale_fill_manual(values = c("Clay" = "brown", "Grass" = "green", "Hard" = "blue")) +
+  scale_fill_manual(values = c("Clay" = "#006400", "Grass" = "#00FF00", "Hard" = "#228B22")) +  # Green shades for surfaces
   labs(
     title = "Distribution of Aces for Winners vs Losers by Surface",
     x = "Match Outcome",
@@ -830,20 +844,19 @@ ggplot(tennis_long_clean, aes(x = win, y = aces, fill = surface)) +
     fill = "Surface"
   ) +
   theme_minimal() +
-  theme(legend.position = "right")
+  theme(legend.position = "right") +
+  theme(plot.margin = margin(10, 10, 10, 10))  # Adjust margins to make the plot smaller
+
 
 ```
-The distribution of aces played by Winners is slightly higher valued than the distribution of aces by Losers. This supports the model estimates and the slight increase in odds of winning (by 1.1 times) for every additional ace played.
-
 ## Conclusion
-This study identified key factors influencing tennis match durations, shedding light on how player characteristics, tournament conditions, and performance metrics contribute to match length. Notably, tournament levels emerged as a significant determinant, with higher-level tournaments, such as G and M, associated with substantially longer matches, reflecting greater competitiveness and intensity. Other significant predictors included differences in player performance, such as the number of aces and breakpoints saved, both of which revealed nuanced relationships with match duration. Physical characteristics, such as player height, also contributed, albeit modestly, suggesting a strategic role in gameplay. 
+This study identified key factors influencing tennis match durations and outcome, shedding light on how player characteristics, tournament conditions, and performance metrics contribute to match length. Notably, tournament levels emerged as a significant determinant, with higher-level tournaments, such as G and M, associated with substantially longer matches, reflecting greater competitiveness and intensity. Other significant predictors included differences in player performance, such as the number of aces and breakpoints saved, both of which revealed nuanced relationships with match duration. Physical characteristics, such as player height, also contributed, albeit modestly, suggesting a strategic role in gameplay. For match outcomes, it has been found that Aces, draw size and the surface reflect an increasing probability of winning.
+
+For match outcomes, the logistic regression model identified aces, court surface, player handedness, draw size, and breakpoint save ratio as significant predictors. An additional ace increased the odds of winning across surfaces, with the strongest effects observed on clay (1.12 times), followed by hard (1.09 times) and grass (1.08 times). Furthermore, each unit increase in draw size resulted in a 1.1 times increase in the odds of winning, highlighting the importance of competitive context. The breakpoint serve ratio also contributed, with an incremental effect of 1.03 times on winning odds. The logistic regression model demonstrated robust predictive performance, achieving an accuracy of 68%, a precision of 68%, and a recall of 70%. The F1 score of 0.82 reflects a balanced capacity to minimize false positives and false negatives.
 
 Despite these insights, the study faced limitations. The reliance on imputed data may have introduced bias, while the linear regression model's assumptions, such as normality, were not perfectly met despite transformations. Plus, the model explained 31% of the variance in match duration (R² = 0.31), leaving room for unaccounted influences such as weather, fatigue or external conditions, potentially leaving room for unexplored contributors to match durations. These limitations may have influenced the precision of the model's estimates
 
 Future research should address these limitations by refining data collection, especially for lower-level tournaments, and incorporating additional variables. By exploring these dimensions, future analyses could provide an even more comprehensive understanding of the factors shaping match durations, aiding in tournament planning and player preparation.
-
-Overall, while every additional ace does improve the probability of a player winning, this factor does not have a heavy impact. Further, some surfaces like clay, significantly improve the chances of winning; however, these two variables are not highly interactive. More realistically, in a match both players will be on the same surface level, so this factor does not help one player over another. Since the model only reached an F-score of 72.5, it appears as though there may be other more indicitave factors of which player will win. 
-
 
 ## References
 
