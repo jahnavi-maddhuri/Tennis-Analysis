@@ -1,8 +1,8 @@
 ---
-title: "Study of tennis athletes performance on different surfaces and factors that affect wins"
+title: "Study of Factors Impacting Tennis Match Durations and Winning Outcomes"
 author: 
   - "Alejandro Paredes La Torre, Liangcheng (Jay) Liu"
-  - "Nzarama Michaella Desire Kouadio, Jahnavi Maddhuri"
+  - "Nzarama Kouadio, Jahnavi Maddhuri"
 subtitle: "2024-12-15"
 format: pdf
 header-includes:
