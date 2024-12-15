@@ -148,12 +148,17 @@ tennis <- tennis %>%
       TRUE ~ loser_hand  # Keep the original value for other cases
     )
   )
+tourney_mapping <- c("D" = 0, "C" = 1, "A" = 2, "M" = 3, "G" = 4, "F" = 5)
+tennis$tourney_level_ord <- as.numeric(tourney_mapping[tennis$tourney_level])
+tennis$w_bpSave_ratio <- tennis$w_bpSaved / tennis$w_bpFaced
+tennis$l_bpSave_ratio <- tennis$l_bpSaved / tennis$l_bpFaced
+
 # View the combined dataset
 head(tennis)
 dim(tennis)
 sum(is.na(tennis$minutes))
-tennis %>%
-  filter(is.na(winner_rank))
+tennis <- tennis %>%
+  filter(!is.na(minutes) & minutes>0)
 
 # Subset the rows where winner_ht is NA
 #missing_height_players <- tennis %>%
@@ -271,24 +276,10 @@ tennis_long <- tennis_long |>
     rank = if_else(is.na(rank), 0, rank),
     rank_points = if_else(is.na(rank_points), 0, rank_points)
   )
-#tennis_long <- tennis_long %>%
-  #group_by(player_country) %>%
-  #mutate(
-    #player_height = if_else(is.na(player_height), 
-    #                        mean(player_height, na.rm = TRUE), 
-    #                        player_height)
-  #) %>%
-  #ungroup()
-
-#tennis_long <- tennis_long |>
-  #mutate(
-    #player_height = if_else(is.na(player_height), mean(player_height, na.rm = TRUE), player_height)
-  #)
-dim(tennis_long)
 
 tennis_long <- tennis_long %>%
-  filter(!is.na(aces) & !is.na(player_age) & !is.na(serve_games)) # #
- 
+  filter(!is.na(aces) & !is.na(player_age) & !is.na(serve_games))
+
 # Get the number of NAs in each column
 #na_count <- sapply(tennis_long, function(x) sum(is.na(x)))
 # Display the result
@@ -375,9 +366,9 @@ print(percent_missing_minutes)
 # Player Performance Metrics: Create performance difference metrics (e.g., difference in aces, rank, and rank points):
 tennis <- tennis %>%
   mutate(
-    diff_aces = w_ace - l_ace,
-    diff_rank = loser_rank - winner_rank,
-    diff_rank_points = loser_rank_points - winner_rank_points
+    diff_aces = abs(w_ace - l_ace),
+    diff_rank = abs(loser_rank - winner_rank),
+    diff_rank_points = abs(loser_rank_points - winner_rank_points)
   )
 
 # Categorical Variables: Convert categorical variables like surface and tourney_level to factors:
@@ -408,15 +399,17 @@ Some variables that significantly impact match duration (minutes) include the di
 
 
 ```{r, message = FALSE, warning=FALSE, echo=FALSE}
-#inputation
+#imputation
 library(mice)
 library(sjlabelled)
 library(tidyverse)
 # Exclude columns and check data
+tennis$surface <- factor(tennis$surface, levels = c("Carpet", "Clay", "Grass", "Hard"))
+tennis$surface <- relevel(tennis$surface, ref = "Carpet")
 tennis.sub <- tennis %>%
   select(minutes , diff_rank , diff_aces , winner_ht , loser_ht , surface , 
-            tourney_level , winner_age , loser_age , w_df , l_df , 
-            w_bpSaved , l_bpSaved , w_bpFaced , l_bpFaced)  # Exclude irrelevant columns
+            tourney_level_ord, tourney_level , winner_age , loser_age , w_df , l_df , 
+            w_bpSave_ratio , l_bpSave_ratio)  # Exclude irrelevant columns
 
 tennis.sub <- unlabel(tennis.sub) #unlabel the data (labels cause problem for the mice function)
 tennis.imp <- mice(tennis.sub, m=5, method="pmm", print=FALSE, seed = 123)
@@ -426,30 +419,115 @@ tennis.comp$winner_ht.comp <- cci(tennis$winner_ht) #create an indicator for com
 ggplot(tennis.comp, aes(x=factor(.imp), y=winner_ht, fill=winner_ht.comp))+
   geom_boxplot()
 
-imp.mods <- with(tennis.imp, lm(minutes ~ diff_rank + diff_aces + winner_ht + loser_ht + surface + 
-            tourney_level + winner_age + loser_age + w_df + l_df + 
-            w_bpSaved + l_bpSaved + w_bpFaced + l_bpFaced))
+imp.mods <- with(tennis.imp, lm(minutes ~ diff_rank*tourney_level + diff_aces + winner_ht + loser_ht + 
+            surface + winner_age + loser_age + w_df + l_df + 
+             w_bpSave_ratio + l_bpSave_ratio))
 summary(pool(imp.mods))
+```
+```{r}
+# Extract coefficients, p-values, and standard errors
+coef_summary <- summary(pool(imp.mods))
 
-# Original without inputation:
-set.seed(123)
-model_linear_2 <- lm(minutes ~ diff_rank + diff_aces + winner_ht + loser_ht + surface + 
-            tourney_level + winner_age + loser_age + w_df + l_df + 
-            w_bpSaved + l_bpSaved + w_bpFaced + l_bpFaced, data = tennis)
-summary(model_linear_2)
+# Get the coefficients, standard errors, and p-values
+terms <- coef_summary$term
+coefficients <- as.numeric(coef_summary$estimate)
+standard_errors <- as.numeric(coef_summary$std.error)
+p_values <- as.numeric(coef_summary$p.value)
 
-predictions <- predict(model_linear_2, test)
-mean_squared_error <- mean((test$minutes - predictions)^2)
-#print(mean_squared_error)
+# Create a data frame to organize the results
+coeff_df <- data.frame(
+  term = terms,
+  coefficient = coefficients,
+  p_value = p_values,
+  stringsAsFactors = FALSE
+)
+
+# Display the table with kable
+colnames(coeff_df) <- c("Variable", "Coefficient", "P-value")
+kable(coeff_df, caption = "Linear Regression Coefficients and P-values")
 ```
 
 > Below is the diagnostic plot for the second linear model. 
 
 ```{r, fig.width=9, fig.height=10}
 par(mfrow = c(2,2))
-plots <- plot(pool(imp.mods))
+
+# Pool the results of the imputed models
+pooled_model <- pool(imp.mods)
+
+# Extract residuals and fitted values from each imputed model
+residuals_list <- lapply(1:5, function(i) {
+  model <- with(complete(tennis.imp, i), lm(minutes ~ diff_rank*tourney_level + diff_aces + winner_ht + loser_ht + 
+            surface + winner_age + loser_age + w_df + l_df + 
+             w_bpSave_ratio + l_bpSave_ratio))
+  data.frame(
+    residuals = residuals(model),
+    fitted = fitted(model),
+    imputation = i
+  )
+})
+
+# Combine the residuals and fitted values
+residuals_combined <- do.call(rbind, residuals_list)
+
+# Create diagnostic plots using ggplot2
+ggplot(residuals_combined, aes(x = fitted, y = residuals, color = factor(imputation))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Residuals vs Fitted Values", x = "Fitted Values", y = "Residuals") +
+  theme_minimal()
+
+ggplot(residuals_combined, aes(sample = residuals, color = factor(imputation))) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(title = "Normal Q-Q Plot", x = "Theoretical Quantiles", y = "Sample Quantiles") +
+  theme_minimal()
+```
+```{r}
+# try with log transformed minutes
+# for (i in 1:5) {
+#   tennis.imp$imp$minutes[[i]] <- ifelse(tennis.imp$imp$minutes[[i]] == 0, 0.1, tennis.imp$imp$minutes[[i]])
+# }
+imp.log_mods <- with(tennis.imp, lm(log(minutes) ~ diff_rank*tourney_level + diff_aces + winner_ht + loser_ht + 
+            surface + winner_age + loser_age + w_df + l_df + 
+             w_bpSave_ratio + l_bpSave_ratio))
+summary(pool(imp.log_mods))
 ```
 
+```{r}
+par(mfrow = c(2,2))
+
+# Pool the results of the imputed models
+pooled_model <- pool(imp.log_mods)
+
+# Extract residuals and fitted values from each imputed model
+residuals_list <- lapply(1:5, function(i) {
+  model <- with(complete(tennis.imp, i), lm(log(minutes) ~ diff_rank*tourney_level + diff_aces + winner_ht + loser_ht + 
+            surface + winner_age + loser_age + w_df + l_df + 
+             w_bpSave_ratio + l_bpSave_ratio))
+  data.frame(
+    residuals = residuals(model),
+    fitted = fitted(model),
+    imputation = i
+  )
+})
+
+# Combine the residuals and fitted values
+residuals_combined <- do.call(rbind, residuals_list)
+
+# Create diagnostic plots using ggplot2
+ggplot(residuals_combined, aes(x = fitted, y = residuals, color = factor(imputation))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Residuals vs Fitted Values", x = "Fitted Values", y = "Residuals") +
+  theme_minimal()
+
+ggplot(residuals_combined, aes(sample = residuals, color = factor(imputation))) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(title = "Normal Q-Q Plot", x = "Theoretical Quantiles", y = "Sample Quantiles") +
+  theme_minimal()
+```
 Despite achieving a higher adjusted R² compared to the first model, several key assumptions of the linear regression model appear to be violated. The "Residuals vs Fitted" plot indicates potential non-linearity in the relationships between predictors and the response variable, suggesting the model may not be capturing all relevant patterns. The "Q-Q Residuals" plot shows significant deviations from normality, particularly in the tails, which could compromise the reliability of hypothesis tests and confidence intervals. Additionally, the "Scale-Location" plot reveals heteroscedasticity, with residuals showing increasing variance as fitted values grow. While the larger R²suggests the model explains more variance in match duration, these assumption violations indicate that the results may not be entirely valid or interpretable under the linear regression framework, reducing the model's overall reliability. These violations suggest that the model might require transformations, interaction terms, or alternative regression methods to better satisfy these assumptions.
 
 
