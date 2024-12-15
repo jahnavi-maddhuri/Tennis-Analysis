@@ -326,7 +326,7 @@ summary_table <- data.frame(
   Min = round(c(min(tennis$minutes, na.rm = TRUE), min(tennis_long$rank, na.rm = TRUE), min(tennis_long$aces, na.rm = TRUE)), 2),
   Mean = round(c(mean(tennis$minutes, na.rm = TRUE), mean(tennis_long$rank, na.rm = TRUE), mean(tennis_long$aces, na.rm = TRUE)), 2),
   Median = round(c(median(tennis$minutes, na.rm = TRUE), median(tennis_long$rank, na.rm = TRUE), median(tennis_long$aces, na.rm = TRUE)), 2),
-  `Std. Deviation` = round(c(sd(tennis$minutes, na.rm = TRUE), sd(tennis_long$rank, na.rm = TRUE), sd(tennis_long$aces, na.rm = TRUE)), 2),
+  `Standard Deviation` = round(c(sd(tennis$minutes, na.rm = TRUE), sd(tennis_long$rank, na.rm = TRUE), sd(tennis_long$aces, na.rm = TRUE)), 2),
   Max = round(c(max(tennis$minutes, na.rm = TRUE), max(tennis_long$rank, na.rm = TRUE), max(tennis_long$aces, na.rm = TRUE)), 2)
 )
 #`Q1` = c(quantile(tennis$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
@@ -531,7 +531,7 @@ ggplot(residuals_combined, aes(sample = residuals, color = factor(imputation))) 
 ```
 
 
-```{r, warning=FALSE, echo=FALSE}
+```{r, fig.height=8, fig.width=10, warning=FALSE, echo=FALSE}
 # Extract completed data frame from mice object
 tennis_imp_df <- complete(tennis.imp, 1)  # Choose the first imputed dataset
 
