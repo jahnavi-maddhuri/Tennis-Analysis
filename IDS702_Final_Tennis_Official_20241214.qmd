@@ -62,7 +62,7 @@ Taking as reference previous research regarding the most relevant features invol
 
 ### Model fitting and evaluation
 
-In regard to the first research question, Multiple linear regression (MLR) was used to analyze the factors influencing match duration. Variance Inflation Factor (VIF) was calculated to test for multicollinearity among predictors, and all variables showed acceptable levels of collinearity, including the interaction terms. Assumptions of linear regression, such as normality, homoscedasticity, and linearity, were evaluated using diagnostic plots. To address deviations from normality, a log transformation was applied to the target variable, match duration, which significantly improved the distribution of residuals. Residual versus fitted plots and Q-Q plots were used to assess model assumptions and ensure the validity of results. R-squared was used to evaluate the overall performance of the linear regression model. All statistical analyses were performed using R programming language (version 4.3.1)
+In regard to the first research question, Multiple linear regression (MLR) was used to analyze the factors influencing match duration. Variance Inflation Factor (VIF) revealed collinearity among some variables, prompting the creation of ratios for breakpoints saved and faced to address this issue. Assumptions of linear regression, such as normality, homoscedasticity, and linearity, were evaluated using diagnostic plots. To address deviations from normality, a log transformation was applied to the target variable, match duration, which significantly improved the distribution of residuals. Residual versus fitted plots and Q-Q plots were used to assess model assumptions and ensure the validity of results. R-squared was used to evaluate the overall performance of the linear regression model. All statistical analyses were performed using R programming language (version 4.3.1)
 
 Regarding the second research question a logistic regression model was developed to predict the outcome of a tennis match, with the dependent variable being a binary outcome representing a win or loss. A series of predictor variables were selected based on relevant literature and expert knowledge, including player attributes, tournament characteristics, and performance metrics. The initial model included a variety of raw variables such as player height, age, rank, double faults, aces, serve statistics, and tournament-level indicators. However, multicollinearity among these predictors was detected using Variance Inflation Factor (VIF) scores, which were notably high for several variables related to serve and break-point statistics. To mitigate multicollinearity, new derived variables such as the first serve win ratio, second serve win ratio, and break-point save ratio were created. Multiple imputation was applied to handle missing data, followed by the use of pooled regression coefficients to account for uncertainty in the imputed data. The receiver operating characteristic (ROC) curve and area under the curve (AUC) were computed to evaluate the classification performance. Finally, binary predictions were generated, and a confusion matrix was produced, along with several classification metrics including accuracy, precision, recall, F1 score, specificity, and sensitivity.
 
@@ -254,6 +254,7 @@ tennis_long <- tennis %>%
         first_in, first_won, second_won, svgms, bp_saved, bp_faced, win
       )
   )
+
 # Create new columns for year, month, and day
 tennis_long <- tennis_long %>%
   mutate(
@@ -355,7 +356,9 @@ tennis <- tennis %>%
 percent_missing_minutes<- sum(is.na(tennis$minutes)) / nrow(tennis) * 100
 # Print the result
 print(percent_missing_minutes)
+```
 
+```{r data-1, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # Player Performance Metrics: Create performance difference metrics (e.g., difference in aces, rank, and rank points):
 tennis <- tennis %>%
   mutate(
@@ -384,7 +387,6 @@ tennis <- tennis %>%
 #15720
 ```
 
-
 ```{r, message = FALSE, warning=FALSE, echo=FALSE, results = 'hide'}
 #imputation
 library(mice)
@@ -402,17 +404,27 @@ tennis.sub <- unlabel(tennis.sub) #unlabel the data (labels cause problem for th
 tennis.imp <- mice(tennis.sub, m=5, method="pmm", print=FALSE, seed = 123)
 tennis.comp <- complete(tennis.imp, "long", include=TRUE) #stack the imputed values into one variable and include he observed values
 tennis.comp$winner_ht.comp <- cci(tennis$winner_ht) #create an indicator for completeness
+glimpse(tennis.imp)
 
 #ggplot(tennis.comp, aes(x=factor(.imp), y=winner_ht, fill=winner_ht.comp))+
 #  geom_boxplot()
 ```
 
 
-Match duration in tennis is influenced by a variety of factors, including tournament level, player performance, court surface, and physical characteristics. The type of tournament significantly affects match duration, with a clear trend emerging when comparing lower and higher levels to the baseline (level A). Matches at level D (Beginner) and level C (Intermediate) tend to be shorter, with level C showing a 3.1% decrease in duration compared to level A (95% CI: -3.7%, -2.5%, p < 0.001). This indicates that lower-level tournaments are associated with shorter match durations. However, as tournament levels rise above C, match duration increases significantly. For instance, matches at level G extend by 21.9% (95% CI: 20.9%, 22.8%, p < 0.001).
+Match duration in tennis is influenced by a variety of factors, including tournament level, player performance, court surface, and physical characteristics. During model development, we assessed multicollinearity among predictors using the Variance Inflation Factor (VIF). High collinearity was identified between the breakpoints saved and breakpoints faced for winners and losers. To address this issue and improve model stability, these variables were combined into ratios of breakpoints saved and ratios of breakpoints faced. This transformation not only reduced redundancy but also provided a clearer representation of the relative performance between winners and losers during matches. 
+
+Tournament level alone significantly affects match duration, with a clear trend emerging when comparing lower and higher levels to the baseline (level A). Matches at level D (Beginner) and level C (Intermediate) tend to be shorter, with level C showing a 3.1% decrease in duration compared to level A (95% CI: -3.7%, -2.5%, p < 0.001). This indicates that lower-level tournaments are associated with shorter match durations. However, as tournament levels rise above C, match duration increases significantly. For instance, matches at level G extend by 21.9% (95% CI: 20.9%, 22.8%, p < 0.001).
+
+Rank difference (the disparity in player rankings) alone has a significant but small effect on match duration at the baseline level. Each unit increase in rank difference decreases match duration by approximately 0.2%. This suggests that larger rank disparities generally lead to shorter matches, as stronger players dominate weaker opponents more quickly.
+
+The interaction between rank difference and tournament level adds further nuance to the findings. When considering the interaction between rank difference and tournament level, the effect varies depending on competitiveness. At level C (Intermediate), the interaction term is significant, with match duration increasing slightly as rank disparity grows, approximately 0.01%. In contrast, at level G (Advanced Recreational), the interaction term is also significant but negative, showing that match duration decreases by 0.01% as rank disparity increases. These results indicate that at intermediate levels, skill differences can prolong matches due to competitive balance, while at higher levels like G, greater rank disparities lead to quicker resolutions due to clearer dominance. For levels D (Beginner), F (Competitive), and M (Professional), the interaction terms are not significant, suggesting that rank disparity does not meaningfully influence match duration at these levels.
 
 Differences in player performance, such as aces, also influence match duration. For every additional ace difference between players, match duration increases by 1% (95% CI: 0.9%, 1.1%, p < 0.001). This indicates that strong serving performances often lead to prolonged matches, as players must engage in more games and sets. Our study also highlights how service errors extend gameplay, likely due to increased rally lengths or additional points. Each additional double fault by the winner increases match length by approximately 5.1% (95% CI: 5.0%, 5.2%, p < 0.001).
 
-Furthermore, the ratio of breakpoints saved by players shows contrasting effects. Winners who save more breakpoints reduce match duration by 12.6% (95% CI: -13.3%, -11.9%, p < 0.001), likely due to their ability to close out critical points effectively. On the other hand, losers who save more breakpoints increase match length by 48.1% (95% CI: 47.2%, 49.1%, p < 0.001). This demonstrates how defensive efforts by losers prolong gameplay, as they manage to stave off losing points but fail to secure victory. The court surface plays a pivotal role in match duration. Matches on clay courts last significantly longer, with duration increasing by 14% (95% CI: 10.1%, 17.8%, p < 0.001). However other types of surfaces have shown no significant impact on length of the match. The overall model adjusted R-squared is 0.31.
+Furthermore, the ratio of breakpoints saved by players shows contrasting effects. Winners who save more breakpoints reduce match duration by 12.6% (95% CI: -13.3%, -11.9%, p < 0.001), likely due to their ability to close out critical points effectively. On the other hand, losers who save more breakpoints increase match length by 48.1% (95% CI: 47.2%, 49.1%, p < 0.001). This demonstrates how defensive efforts by losers prolong gameplay, as they manage to stave off losing points but fail to secure victory. The court surface plays a pivotal role in match duration. Matches on clay courts last significantly longer, with duration increasing by 14% (95% CI: 10.1%, 17.8%, p < 0.001). However other types of surfaces have shown no significant impact on length of the match. 
+
+The overall model adjusted R-squared is 0.31.
+
 
 ```{r, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # try with log transformed minutes
@@ -457,7 +469,7 @@ formatted_results <- tidy_model %>%
 # Display the table with kable
 formatted_results %>%
   mutate(
-    Coefficient = round(Coefficient, 2),
+    Coefficient = round(Coefficient, 4),
     `Standard Error` = round(`Standard Error`, 2),
     #`P-Value` = round(`P-Value`, 2)
     `P-Value` = ifelse(`P-Value` <0.001, "<0.001", round(`P-Value`, 3))  # Change p-value of 0 to <0.001
@@ -465,7 +477,7 @@ formatted_results %>%
   ) %>%
   knitr::kable(
     caption = "Linear Regression Model Results",
-    digits = 2,
+    digits = 4,
     format = "markdown",
     align = c("l", "r", "r", "r", "r") #, "r"
   )
@@ -522,23 +534,6 @@ ggplot(residuals_combined, aes(sample = residuals, color = factor(imputation))) 
   theme_minimal()
 ```
 
-```{r, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
-# Calculate VIF for predictors to determine multicolinearity
-library(car)
-
-# Extract the first imputed dataset for simplicity (or one representative dataset)
-final_data <- complete(tennis.imp, 1)
-
-# Refit the model for VIF calculation
-vif_model <- lm(log(minutes) ~ diff_rank * tourney_level + diff_aces + 
-                winner_ht + loser_ht + surface + winner_age + loser_age + 
-                w_df + l_df + w_bpSave_ratio + l_bpSave_ratio, 
-                data = final_data)
-
-# Calculate VIF
-vif_values <- vif(vif_model)
-print(vif_values)
-```
 
 ```{r, warning=FALSE, echo=FALSE}
 # Extract completed data frame from mice object
@@ -865,11 +860,12 @@ ggplot(tennis_long_clean, aes(x = win, y = aces, fill = surface)) +
 
 ```
 ## Conclusion
-This study identified key factors influencing tennis match durations and outcome, shedding light on how player characteristics, tournament conditions, and performance metrics contribute to match length. Notably, tournament levels emerged as a significant determinant, with higher-level tournaments, such as G and M, associated with substantially longer matches, reflecting greater competitiveness and intensity. Other significant predictors included differences in player performance, such as the number of aces and breakpoints saved, both of which revealed nuanced relationships with match duration. Physical characteristics, such as player height, also contributed, albeit modestly, suggesting a strategic role in gameplay. For match outcomes, it has been found that Aces, draw size and the surface reflect an increasing probability of winning.
+
+This study identified key factors influencing tennis match durations and outcome, shedding light on how player characteristics, tournament conditions, and performance metrics contribute to match length. Notably, tournament levels emerged as a significant determinant, with higher-level tournaments, such as G and M, associated with substantially longer matches, reflecting greater competitiveness and intensity. While tournament level alone drives significant differences in match duration, particularly at higher tiers, the interaction with rank difference reveals that player ranking disparities are only influential under specific conditions. In intermediate and advanced tournaments (levels C and G), rank disparity slightly amplifies match duration, while at other levels, its effect remains negligible. Other significant predictors included differences in player performance, such as the number of aces and breakpoints saved, both of which revealed nuanced relationships with match duration. Physical characteristics, such as player height, also contributed, albeit modestly, suggesting a strategic role in gameplay.
 
 For match outcomes, the logistic regression model identified aces, court surface, player handedness, draw size, and breakpoint save ratio as significant predictors. An additional ace increased the odds of winning across surfaces, with the strongest effects observed on clay (1.11 times), followed by hard (1.09 times) and grass (1.07 times). The breakpoint serve ratio also contributed, with an incremental effect of 1.03 times on winning odds. The player's attributes such as height or age showed that every extra unit of increase of the respective variables reduce the odds of winning. The logistic regression model demonstrated robust predictive performance, achieving an accuracy of 68%, a precision of 68%, and a recall of 70%. The F1 score of 0.82 reflects a balanced capacity to minimize false positives and false negatives.
 
-Despite these insights, the study faced limitations. The reliance on imputed data may have introduced bias, while the linear regression model's assumptions, such as normality, were not perfectly met despite transformations. Plus, for the multiple linear model the r squared explained 31% of the variance in match duration (R² = 0.31), leaving room for unaccounted influences such as weather, fatigue or external conditions, potentially leaving room for unexplored contributors to match durations. These limitations may have influenced the precision of the model's estimates
+Despite these insights, the study faced limitations. The reliance on imputed data may have introduced bias, while the linear regression model's assumptions, such as normality, were not perfectly met despite transformations. Plus, for the multiple linear model the R squared explained 31% of the variance in match duration (R² = 0.31), leaving room for unaccounted influences such as weather, fatigue or external conditions, potentially leaving room for unexplored contributors to match durations. These limitations may have influenced the precision of the model's estimates
 
 Future research should address these limitations by refining data collection, especially for lower-level tournaments, and incorporating additional variables. By exploring these dimensions, future analyses could provide an even more comprehensive understanding of the factors shaping match durations, aiding in tournament planning and player preparation.
 
