@@ -48,11 +48,11 @@ The dataset used in this study is the Tennis ATP Dataset curated by Jeff Sackman
 
 The time frame selected includes ATP match data from 2014-2024, the subsets chosen are challenger matches and professional and tournament class A matches such as Davis Cup, Roland Garros and others. The records from this period consist in 116,103 matches where each match has 49 variables. 
 
-Pertaining the first research question, to assess the effect of factors on the match length, the difference in the number of aces, rankings, and ranking points between the winner and loser were calculated. These perfomance metrics aim to provide more tangible and interpretable predictors for the model by focusing on measurable aspects of the players performance. Grouping variables into performance metrics also helps to frame the analysis in a way that aligns with the context of the sport and makes the regressors more meaningful and insightful.
+Pertaining the first research question, to assess the effect of factors on the match length, the difference in the number of aces, rankings, and ranking points between the winner and loser were calculated. These perfomance metrics aim to provide more tangible and interpretable predictors for the model by focusing on measurable aspects of the players performance. Grouping variables into performance metrics also helps to frame the analysis in a way that aligns with the context of the sport and makes the regressors more meaningful and insightful. Based on a VIF analysis, highly correlated variables were addressed by introducing derived metrics, such as the first break point win ratio, to mitigate multicollinearity and improve model stability.
 
 To address the issue of missing values, a multiple imputation approach was applied using the mice package. This method generates several imputed datasets to account for the uncertainty inherent in estimating missing values, thereby enhancing the robustness of subsequent analyses. Predictive mean matching (PMM) was employed as the imputation technique, combining regression-based prediction with donor-based imputation. This ensures that imputed values align with the observed data distribution, remaining realistic and within plausible ranges.
 
-In respect to the second research question, which focuses on analyzing match outcomes, additional data processing steps were taken. The original dataset, which contains match-level features with information on both the winner and loser in a single record, was restructured. This transformation reorganized the data at the player level, ensuring that each record represents either a win or a loss for a given player. The dimensions for this transformed dataset are 218321 records and 30 variables. This adjustment allows for a more focused analysis of the factors influencing match outcomes.
+In respect to the second research question, which focuses on analyzing match outcomes, additional data processing steps were taken. The original dataset, which contains match-level features with information on both the winner and loser in a single record, was restructured. This transformation reorganized the data at the player level, ensuring that each record represents either a win or a loss for a given player. The dimensions for this transformed dataset are 218321 records and 30 variables. This adjustment allows for a more focused analysis of the factors influencing match outcomes. Furthermore, in order to deal with multicolinearity new derived variables such as the first serve win ratio, calculated from two underlying variables, were used to merge highly correlated variables, the procedure being explained in detail in the results section.
 
 For the second research question, 4,739 records (2%) with missing values in the aces column were excluded. This decision was based on the observation that missing data in aces systematically coincided with missing values for all other match statistics. A similar approach was applied to the serving games variable 4,740 records (2%), as its missing data also indicated the absence of other critical match details, further supporting exclusion. For the remaining variables without systematic missingness, a multiple imputation technique was applied, informed by the results of the imputation method used in the first research question.
 
@@ -163,12 +163,21 @@ tennis <- tennis %>%
   #filter(is.na(winner_ht)) %>%
   #distinct(winner_name)
 #table(tennis$winner_hand)
+
+sum(is.na(tennis$minutes))
+sum(is.na(tennis$winner_rank))
+sum(is.na(tennis$loser_rank))
+sum(is.na(tennis$winner_ht))
+sum(is.na(tennis$loser_ht))
+
+tennis %>% filter(is.na(loser_ht))
+
 ```
 
 ```{r , message=FALSE, warning=FALSE, echo=FALSE, include=FALSE, results = 'hide'}
 # Create a long-format dataset for both winners and losers
 tennis_long <- tennis %>%
-  filter(!is.na(minutes) & !is.na(winner_rank) & !is.na(loser_rank))%>%
+  filter(!is.na(minutes)) %>%#& !is.na(winner_rank) & !is.na(loser_rank))%>%
   mutate(
     win = 1,
     player_id = winner_id,
@@ -289,6 +298,9 @@ sum(is.na(tennis_long$player_height))
 
 sum(is.na(tennis_long$serve_games))
 sum(is.na(tennis_long$draw_size))
+sum(is.na(tennis_long$winner_rank))
+sum(is.na(tennis_long$draw_size))
+
 ```
 
 ### Overview of key variables of interest
@@ -310,13 +322,15 @@ The dataset shows a fairly balanced distribution of players who win (101,746) ve
 ```{r, warning=FALSE, echo=FALSE}
 summary_table <- data.frame(
   Variable = c("minutes", "rank", "aces"),
-  Minimum = c(min(tennis_long$minutes, na.rm = TRUE), min(tennis_long$rank, na.rm = TRUE), min(tennis_long$aces, na.rm = TRUE)),
-  `Q1` = c(quantile(tennis_long$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
+  Min = c(min(tennis$minutes, na.rm = TRUE), min(tennis_long$rank, na.rm = TRUE), min(tennis_long$aces, na.rm = TRUE)),
+  `Q1` = c(quantile(tennis$minutes, 0.25, na.rm = TRUE), quantile(tennis_long$rank, 0.25, na.rm = TRUE), quantile(tennis_long$aces, 0.25, na.rm = TRUE)),
   Mean = c(mean(tennis$minutes, na.rm = TRUE), mean(tennis_long$rank, na.rm = TRUE), mean(tennis_long$aces, na.rm = TRUE)),
   Median = c(median(tennis$minutes, na.rm = TRUE), median(tennis_long$rank, na.rm = TRUE), median(tennis_long$aces, na.rm = TRUE)),
+  `Std. Deviation` = c(sd(tennis$minutes, na.rm = TRUE), sd(tennis_long$rank, na.rm = TRUE), sd(tennis_long$aces, na.rm = TRUE)),
   `Q3` = c(quantile(tennis$minutes, 0.75, na.rm = TRUE), quantile(tennis_long$rank, 0.75, na.rm = TRUE), quantile(tennis_long$aces, 0.75, na.rm = TRUE)),
-  Maximum = c(max(tennis$minutes, na.rm = TRUE), max(tennis_long$rank, na.rm = TRUE), max(tennis_long$aces, na.rm = TRUE))
+  Max = c(max(tennis$minutes, na.rm = TRUE), max(tennis_long$rank, na.rm = TRUE), max(tennis_long$aces, na.rm = TRUE))
 )
+
 
 kable(summary_table, caption = "Summary Statistics for Variables")
 ```
@@ -447,7 +461,9 @@ formatted_results %>%
   mutate(
     Coefficient = round(Coefficient, 2),
     `Standard Error` = round(`Standard Error`, 2),
-    `P-Value` = round(`P-Value`, 2)
+    #`P-Value` = round(`P-Value`, 2)
+    `P-Value` = ifelse(`P-Value` <0.001, "<0.001", round(`P-Value`, 3))  # Change p-value of 0 to <0.001
+
   ) %>%
   knitr::kable(
     caption = "Linear Regression Model Results",
@@ -702,7 +718,8 @@ coeff_df <- data.frame(
   #lower_ci = round(lower_ci, 2),  # Separate lower CI
   #upper_ci = round(upper_ci, 2),  # Separate upper CI
   ci = paste0(round(lower_ci, 2), ",", round(upper_ci, 2)),  # Combine CI into one column
-  p_value = round(p_values, 2),
+  #p_value = round(p_values, 2),
+  p_value = ifelse(p_values <0.001, "<0.001", round(p_values, 3)),
   stringsAsFactors = FALSE
 )
 # Exclude the intercept row
@@ -725,7 +742,9 @@ merged_table
 
 ```
 
-Analyzing the variables of interest aces and surface, we have an effect of 1.12 times increase in odds of winning for every extra ace point when the match is disputed on a clay surface, with a combined confidence interval between 1.03 and 1.19, considering that the variable aces is statistically significant while the interation terms are not. Similarly, for matches played on Grass the model has a combined effect increasing the odds of winning by 1.08 times. The impact of every extra ace point while playing on hard surfaces represent a combine effect of 1.09 increse in the odds of winning the match. Another statistically significant variable impacting the odds of winning is the right vs left-handed stature of the player. Specifically being Right or Left Handed (as opposed to ambidextrous) is associated with approximately 1.37 times and 1.36 times increase in odds of winning respectevely. Additionally, is it observed that for every extra unit in draw size the odd are 1.1 times an increase in the odds of winning. Furthermore, the break point serve ration explains an effect of 1.03 times the increase in odds of winning.
+Analyzing the variables of interest aces and surface, considering that the variable aces is statistically significant while the interation terms are not, we have a combined effect of 1.11 times increase in odds of winning for every extra ace point when the match is disputed on a clay surface, with a combined confidence interval between 1.03 and 1.19. Similarly, for matches played on Grass the model has a combined effect increasing the odds of winning by 1.07 times. The impact of every extra ace point while playing on hard surfaces represent a combine effect of 1.09 increase in the odds of winning the match. 
+
+Another statistically significant variable impacting the odds of winning is the referred to right vs left-handed player. Specifically being Right or Left Handed (as opposed to ambidextrous, the base level) is associated with approximately 1.27 times and 1.29 times increase in odds of winning respectively. Furthermore, the break point serve ration explains an effect of 1.03 times the increase in odds of winning, holding the other variables constant. Finally, statistically significant variables related to the player attributes showed that an increase of a year for a player's age reduces the odds of winning by 2%, while for every extra inch for player the odds of winning reduce by 2%.
 
 ```{r, message=FALSE, warning=FALSE,fig.width=5,fig.height=3}
 
@@ -850,9 +869,9 @@ ggplot(tennis_long_clean, aes(x = win, y = aces, fill = surface)) +
 ## Conclusion
 This study identified key factors influencing tennis match durations and outcome, shedding light on how player characteristics, tournament conditions, and performance metrics contribute to match length. Notably, tournament levels emerged as a significant determinant, with higher-level tournaments, such as G and M, associated with substantially longer matches, reflecting greater competitiveness and intensity. Other significant predictors included differences in player performance, such as the number of aces and breakpoints saved, both of which revealed nuanced relationships with match duration. Physical characteristics, such as player height, also contributed, albeit modestly, suggesting a strategic role in gameplay. For match outcomes, it has been found that Aces, draw size and the surface reflect an increasing probability of winning.
 
-For match outcomes, the logistic regression model identified aces, court surface, player handedness, draw size, and breakpoint save ratio as significant predictors. An additional ace increased the odds of winning across surfaces, with the strongest effects observed on clay (1.12 times), followed by hard (1.09 times) and grass (1.08 times). Furthermore, each unit increase in draw size resulted in a 1.1 times increase in the odds of winning, highlighting the importance of competitive context. The breakpoint serve ratio also contributed, with an incremental effect of 1.03 times on winning odds. The logistic regression model demonstrated robust predictive performance, achieving an accuracy of 68%, a precision of 68%, and a recall of 70%. The F1 score of 0.82 reflects a balanced capacity to minimize false positives and false negatives.
+For match outcomes, the logistic regression model identified aces, court surface, player handedness, draw size, and breakpoint save ratio as significant predictors. An additional ace increased the odds of winning across surfaces, with the strongest effects observed on clay (1.11 times), followed by hard (1.09 times) and grass (1.07 times). The breakpoint serve ratio also contributed, with an incremental effect of 1.03 times on winning odds. The player's attributes such as height or age showed that every extra unit of increase of the respective variables reduce the odds of winning. The logistic regression model demonstrated robust predictive performance, achieving an accuracy of 68%, a precision of 68%, and a recall of 70%. The F1 score of 0.82 reflects a balanced capacity to minimize false positives and false negatives.
 
-Despite these insights, the study faced limitations. The reliance on imputed data may have introduced bias, while the linear regression model's assumptions, such as normality, were not perfectly met despite transformations. Plus, the model explained 31% of the variance in match duration (R² = 0.31), leaving room for unaccounted influences such as weather, fatigue or external conditions, potentially leaving room for unexplored contributors to match durations. These limitations may have influenced the precision of the model's estimates
+Despite these insights, the study faced limitations. The reliance on imputed data may have introduced bias, while the linear regression model's assumptions, such as normality, were not perfectly met despite transformations. Plus, for the multiple linear model the r squared explained 31% of the variance in match duration (R² = 0.31), leaving room for unaccounted influences such as weather, fatigue or external conditions, potentially leaving room for unexplored contributors to match durations. These limitations may have influenced the precision of the model's estimates
 
 Future research should address these limitations by refining data collection, especially for lower-level tournaments, and incorporating additional variables. By exploring these dimensions, future analyses could provide an even more comprehensive understanding of the factors shaping match durations, aiding in tournament planning and player preparation.
 
