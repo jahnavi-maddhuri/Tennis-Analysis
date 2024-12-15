@@ -16,25 +16,23 @@ geometry: margin=0.8in
 
 ## Abstract
 
-Modeling the key factors that influence professional tennis match outcomes is crucial for athletes, coaches, and researchers seeking to optimize performance and enhance player development. This study utilizes ATP data to examine how player rankings and aces impact match duration and outcomes. The analysis reveals that larger ranking disparities are associated with shorter match durations, suggesting that players with higher rankings are more likely to win quickly. In addition, the study investigates the relationship between the number of aces a player hits and their probability of winning, finding that more aces significantly improve a player's chances of victory. The effect of aces varies across different court surfaces, with clay courts showing the strongest influence. This research provides valuable insights into the complex dynamics of tennis matches and highlights the importance of surface type, player ranking, and performance metrics like aces in shaping match outcomes.
+Modeling the key factors that influence professional tennis match outcomes is crucial for athletes, coaches, and researchers seeking to optimize performance and enhance player development. This study utilizes ATP data to examine how player rankings and aces impact match duration and outcomes. The analysis reveals that larger ranking disparities are associated with shorter match duration, suggesting that players with higher rankings are more likely to win quickly. In addition, the study investigates the relationship between the number of aces a player hits and their probability of winning, finding that more aces significantly improve a player's chances of victory. The effect of aces varies across different court surfaces, with clay courts showing the strongest influence. This research provides valuable insights into the complex dynamics of tennis matches and highlights the importance of surface type, player ranking, and performance metrics like aces in shaping match outcomes.
 
 ## Introduction
 
 Predicting outcomes in sports has long been a central focus for athletes, teams, and industries alike. Statistical science, when applied to sports, plays a pivotal role in optimizing an athlete’s performance, making it a subject of significant interest for both researchers and commercial enterprises. In professional tennis, analyzing the factors that influence match outcomes offers insights that extend beyond simple predictions, encompassing strategic advancements and broader applications.
 
-Such insights have practical implications for refining rankings (Klaassen and Magnus, 2003)[16], ratings (Kovalchik, 2016)[17], and seedings(Boulier et. al 1999)[15], serving as a foundation for performance analysis and strategy optimization. Predictive models are pivotal in industries like sports betting, where they drive decision-making and risk management (Foley-Train, 2014)[18]. . In academic research, these models contribute to methodological improvements, as seen in the work of Štrumbelj & Vračar (2012)[6], who explored probabilistic approaches to predicting match outcomes. 
+Such insights have practical implications for refining rankings (Klaassen and Magnus, 2003)[1], ratings (Kovalchik, 2016)[2], and seedings(Boulier et. al 1999)[3], serving as a foundation for performance analysis and strategy optimization. Predictive models are pivotal in industries like sports betting, where they drive decision-making and risk management (Foley-Train, 2014)[4]. In academic research, these models contribute to methodological improvements, as seen in the work of Štrumbelj & Vračar (2012)[5], who explored probabilistic approaches to predicting match outcomes. 
 
-Analyzing professional tennis data bridges practical applications and theoretical advancements. Studies like those by Boulier and Stekler (1999)[7], Lasek, Szlávik, and Bhulai (2013) [8], and McHale and Davies (2007)[9] highlight how data-driven approaches can uncover nuanced patterns in sports, offering a deeper understanding of the game and its predictive dynamics
+Analyzing professional tennis data bridges practical applications and theoretical advancements. A growing body of literature underscores the role of data-driven approaches in uncovering intricate patterns within tennis. For instance, Boulier and Stekler (1999)[6] demonstrated how statistical models could be used to assess player performance, while Lasek, Szlávik, and Bhulai (2013)[8] examined predictive methods for ranking systems. McHale and Davies (2007)[9] explored the influence of match dynamics on outcomes, further bridging theoretical advancements with practical applications.These studies highlight how data-driven approaches can uncover nuanced patterns in sports, offering a deeper understanding of the game and its predictive dynamics
 
-A growing body of literature underscores the role of data-driven approaches in uncovering intricate patterns within tennis. For instance, Boulier and Stekler (1999)[7] demonstrated how statistical models could be used to assess player performance, while Lasek, Szlávik, and Bhulai (2013)[8] examined predictive methods for ranking systems. McHale and Davies (2007)[9] explored the influence of match dynamics on outcomes, further bridging theoretical advancements with practical applications.
+Early foundational studies, such as those by Newton and Keller (2005)[9], O'Malley (2008)[10], and Riddle (1988)[11], established that under the assumption of independent and identically distributed (iid) point outcomes on a player's serve, the probability of winning a match could be derived from serve-point probabilities. These studies laid the groundwork for subsequent research in probabilistic modeling of tennis outcomes.
 
-Early foundational studies, such as those by Newton and Keller (2005)\[2\], O'Malley (2008)\[3\], and Riddle (1988)\[4\], established that under the assumption of independent and identically distributed (iid) point outcomes on a player's serve, the probability of winning a match could be derived from serve-point probabilities. These studies laid the groundwork for subsequent research in probabilistic modeling of tennis outcomes.
+Kovalchik (2016) [12] conducted a comparison of 11 published tennis prediction models, categorizing them into three classes: point-based models relying on the iid assumption, regression-based models, and paired comparison models. The study found that point-based models had lower accuracy and higher log loss, regression and paired comparison models generally outperformed them.
 
-Kovalchik (2016) \[5\] conducted a comparison of 11 published tennis prediction models, categorizing them into three classes: point-based models relying on the iid assumption, regression-based models, and paired comparison models. The study found that point-based models had lower accuracy and higher log loss, regression and paired comparison models generally outperformed them.
+Furthermore, given the importance of player rankings and performance metrics in tennis prediction models, it is essential to understand the context provided by the ATP (Association of Tennis Professionals). This institution is the principal governing body of men's professional tennis. It oversees the ATP Tour, which features the highest level of men's tennis tournaments worldwide, including Grand Slams, Masters 1000 events, and other competitive circuits. The ATP rankings system, introduced in 1973, is used to evaluate and rank players based on their performance in sanctioned tournaments over a rolling 52-week period, serving as a critical metric for seedings and qualifications (ATP Tour, n.d.)[13].
 
-Furthermore, given the importance of player rankings and performance metrics in tennis prediction models, it is essential to understand the context provided by the ATP (Association of Tennis Professionals). This institution is the principal governing body of men's professional tennis. It oversees the ATP Tour, which features the highest level of men's tennis tournaments worldwide, including Grand Slams, Masters 1000 events, and other competitive circuits. The ATP rankings system, introduced in 1973, is used to evaluate and rank players based on their performance in sanctioned tournaments over a rolling 52-week period, serving as a critical metric for seedings and qualifications (ATP Tour, n.d.)[19].
-
-Building on these studies, this research uses the Tennis ATP dataset (Sackmann, 2021), a collection of information for professional tennis matches and professional players, to investigate two specific questions:
+Building on these studies, this research uses the Tennis ATP dataset (Sackmann, 2021)[14], a collection of information for professional tennis matches and professional players, to investigate two specific questions:
 
 1. How does the difference in player rankings influence the duration of a tennis match? 
 
@@ -44,7 +42,7 @@ Building on these studies, this research uses the Tennis ATP dataset (Sackmann, 
 
 ### Data and preprocessing
 
-The dataset used in this study is the Tennis ATP Dataset curated by Jeff Sackmann (2021) \[1\]. This dataset serves as a comprehensive repository of professional tennis data, encompassing a wide range of player information, historical rankings, match outcomes, and statistical metrics. This dataset serves as a valuable resource for analyzing trends and performance in professional tennis, forming the basis for addressing the research questions in this study.
+The dataset used in this study is the Tennis ATP Dataset curated by Jeff Sackmann (2021) [1]. This dataset serves as a comprehensive repository of professional tennis data, encompassing a wide range of player information, historical rankings, match outcomes, and statistical metrics. This dataset serves as a valuable resource for analyzing trends and performance in professional tennis, forming the basis for addressing the research questions in this study.
 
 The time frame selected includes ATP match data from 2014-2024, the subsets chosen are challenger matches and professional and tournament class A matches such as Davis Cup, Roland Garros and others. The records from this period consist in 116,103 matches where each match has 49 variables. 
 
@@ -58,7 +56,7 @@ For the second research question, 4,739 records (2%) with missing values in the 
 
 ### Variable selection
 
-Taking as reference previous research regarding the most relevant features involved in the outcome of a tennis match (Newton et al., 2005\[1\]; O'Malley 2008\[2\]; Kovalchik, 2016) a pre selection was made observing the limitation of the available data. In order to further refine the process of feature selection exploratory data analysis was conducted using correlation plots, box plots and scatterplots.
+Taking as reference previous research regarding the most relevant features involved in the outcome of a tennis match (Newton et al., 2005[9]; O'Malley 2008[10]; Kovalchik, 2016[11]) a pre selection was made observing the limitation of the available data. Furthermore, adding and interaction term for the model was supported by the work of Sklenička, J. (2024), who modeled matches outcome using as factors the different type of surfaces. In order to further refine the process of feature selection exploratory data analysis was conducted using correlation plots, box plots and scatterplots.
 
 ### Model fitting and evaluation
 
@@ -867,30 +865,32 @@ Future research should address these limitations by refining data collection, es
 
 ## References
 
-\[1\] Sackmann, J. (n.d.). Tennis databases, files, and algorithms \[Data set\]. Tennis Abstract. Licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Based on a work at https://github.com/JeffSackmann.
+[1] Klaassen, F. J., & Magnus, J. R. (2003). Forecasting the winner of a tennis match. European Journal of Operational Research, 148(2), 257-267.
 
-\[2\] Newton, P. K., & Keller, J. B. (2005). Probability of winning at tennis I. Theory and data. Studies in applied Mathematics, 114(3), 241-269.
+[2] Kovalchik, S. A. (2016). Searching for the GOAT of tennis win prediction. Journal of Quantitative Analysis in Sports, 12(3), 127-138.
 
-\[3\] O'Malley, A. J. (2008). Probability formulas and statistical analysis in tennis. Journal of Quantitative Analysis in Sports, 4(2).
+[3] Boulier, B. L., & Stekler, H. O. (1999). Are sports seedings good predictors?: an evaluation. International Journal of Forecasting, 15(1), 83-91.
 
-\[4\] Riddle, L. H. (1988). Probability models for tennis scoring systems. Journal of the Royal Statistical Society Series C: Applied Statistics, 37(1), 63-75.
+[4] Foley-Train, J. (2014). Sports betting: Commercial and integrity issues. Report prepared for the Association of British Bookmakers, European Gaming and Betting Association, European Sport Security Association and Remote Gambling Association. Retrieved January, 21, 2015.
 
-\[5\] Kovalchik, S. A. (2016). Searching for the GOAT of tennis win prediction. Journal of Quantitative Analysis in Sports, 12(3), 127-138.
+[5] Štrumbelj, E., & Vračar, P. (2012). Simulating a basketball match with a homogeneous Markov model and forecasting the outcome. International Journal of Forecasting, 28(2), 532-542.
 
-\[6\] Štrumbelj, E., & Vračar, P. (2012). Simulating a basketball match with a homogeneous Markov model and forecasting the outcome. International Journal of Forecasting, 28(2), 532-542.
+[6] Boulier, B. L., & Stekler, H. O. (1999). Are sports seedings good predictors?: an evaluation. International Journal of Forecasting, 15(1), 83-91.
 
-\[7\] Boulier, B. L., & Stekler, H. O. (1999). Are sports seedings good predictors?: an evaluation. International Journal of Forecasting, 15(1), 83-91.
+[7] Lasek, J., Szlávik, Z., & Bhulai, S. (2013). The predictive power of ranking systems in association football. International Journal of Applied Pattern Recognition, 1(1), 27-46.
 
-\[8\] Lasek, J., Szlávik, Z., & Bhulai, S. (2013). The predictive power of ranking systems in association football. International Journal of Applied Pattern Recognition, 1(1), 27-46.
+[8] McHale, I., & Davies, S. (2007). Statistical analysis of the effectiveness of the FIFA world rankings. In Statistical thinking in sports (pp. 89-102). Chapman and Hall/CRC.
 
-\[9\] Sklenička, J. (2024). Predicting the outcomes of tennis matches. How important is the factor of different surfaces?.
+[9] Newton, P. K., & Keller, J. B. (2005). Probability of winning at tennis I. Theory and data. Studies in applied Mathematics, 114(3), 241-269.
 
-[15] Boulier, B. L., & Stekler, H. O. (1999). Are sports seedings good predictors?: an evaluation. International Journal of Forecasting, 15(1), 83-91.
+[10] O'Malley, A. J. (2008). Probability formulas and statistical analysis in tennis. Journal of Quantitative Analysis in Sports, 4(2).
 
-[16] Klaassen, F. J., & Magnus, J. R. (2003). Forecasting the winner of a tennis match. European Journal of Operational Research, 148(2), 257-267.
+[11] Riddle, L. H. (1988). Probability models for tennis scoring systems. Journal of the Royal Statistical Society Series C: Applied Statistics, 37(1), 63-75.
 
-[17] Kovalchik, S. A. (2016). Searching for the GOAT of tennis win prediction. Journal of Quantitative Analysis in Sports, 12(3), 127-138.
+[12] Kovalchik, S. A. (2016). Searching for the GOAT of tennis win prediction. Journal of Quantitative Analysis in Sports, 12(3), 127-138.
 
-[18] Foley-Train, J. (2014). Sports betting: Commercial and integrity issues. Report prepared for the Association of British Bookmakers, European Gaming and Betting Association, European Sport Security Association and Remote Gambling Association. Retrieved January, 21, 2015.
+[13] ATP Tour. (n.d.). About the ATP. Retrieved from https://www.atptour.com
 
-[19] ATP Tour. (n.d.). About the ATP. Retrieved from https://www.atptour.com
+[14] Sackmann, J. (n.d.). Tennis databases, files, and algorithms \[Data set\]. Tennis Abstract. Licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Based on a work at https://github.com/JeffSackmann.
+
+[15] Sklenička, J. (2024). Predicting the outcomes of tennis matches. How important is the factor of different surfaces?.
